@@ -1,5 +1,3 @@
-use std::os::linux::raw::stat;
-
 #[derive(Debug, PartialEq)]
 pub enum ParseError {
     EmptyInput,
@@ -33,8 +31,8 @@ pub fn parse_heading(s: &str) -> Result<String, ParseError> {
     }
 }
 
-pub fn parse_bold(s: &str) -> Result<String, ParseError>{
-    if s.trim().is_empty(){
+pub fn parse_bold(s: &str) -> Result<String, ParseError> {
+    if s.trim().is_empty() {
         return Err(ParseError::EmptyInput);
     }
 
@@ -43,7 +41,10 @@ pub fn parse_bold(s: &str) -> Result<String, ParseError>{
     let mut i = 0;
 
     while i < chars.len() {
-        if i + 1 < chars.len() && ((chars[i] == '*' && chars[i + 1] == '*') || (chars[i] == '_' && chars[i + 1] == '_')){
+        if i + 1 < chars.len()
+            && ((chars[i] == '*' && chars[i + 1] == '*')
+                || (chars[i] == '_' && chars[i + 1] == '_'))
+        {
             let marker = chars[i];
             i += 2;
 
@@ -57,22 +58,20 @@ pub fn parse_bold(s: &str) -> Result<String, ParseError>{
                 let bold_text: String = chars[start..i].iter().collect();
                 output.push_str(&format!("<b>{bold_text}</b>"));
                 i += 2;
-            }else {
+            } else {
                 output.push(marker);
                 output.push(marker);
                 output.extend(&chars[start..]);
                 break;
             }
-        }else{
+        } else {
             output.push(chars[i]);
             i += 1;
         }
-        
     }
 
     Ok(output)
 }
-
 
 #[cfg(test)]
 mod markdown_tests {
@@ -132,16 +131,23 @@ mod markdown_tests {
     }
 
     #[test]
-    fn test_parse_bold_empty(){
+    fn test_parse_bold_empty() {
         let parsed_bold = parse_bold("");
         assert_eq!(parsed_bold, Err(ParseError::EmptyInput));
     }
 
     #[test]
-    fn test_parse_bold(){
+    fn test_parse_bold() {
         let bold = "**bold text**";
         let expected = format!("<b>bold text</b>");
         let parsed_bold = parse_bold(bold);
         assert_eq!(parsed_bold, Ok(expected));
+    }
+
+    #[test]
+    fn test_parse_bold_no_closing_marker() {
+        let bold = "**bold text".to_string();
+        let parsed_bold = parse_bold(&bold);
+        assert_eq!(parsed_bold, Ok(bold));
     }
 }
