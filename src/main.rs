@@ -1,10 +1,43 @@
+mod lexer;
 mod markdown;
 
 use markdown::{parse_heading, parse_paragraph};
+use std::env;
+use std::io;
+use std::io::Write;
 
-const HEADING: &str = "#Heading";
-const PARAGRAPH: &str = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.";
+use crate::lexer::ErrorHandler;
+use crate::lexer::error_handler;
+use crate::lexer::lexer::Lexer;
+
 fn main() {
-    println!("{}", parse_heading(HEADING).unwrap_or("no".to_string()));
-    println!("{}", parse_paragraph(PARAGRAPH).unwrap_or("no".to_string()));
+    let args: Vec<String> = env::args().collect();
+
+    if args.len() > 2 {
+        println!("Use :");
+    } else if args.len() == 2 {
+        println!("Lexing file:")
+    } else {
+        println!("Enter markdown code");
+        run_repl();
+    }
+}
+
+fn run_repl() {
+    while true {
+        println!("> ");
+        io::stdout().flush().unwrap();
+
+        let mut input = String::new();
+        io::stdin().read_line(&mut input).unwrap();
+        run(input);
+    }
+}
+
+fn run(source: String) {
+    let mut error_handler = ErrorHandler::new();
+    let mut lexer = Lexer::new(source, &mut error_handler);
+    let tokens = lexer.scan_tokens();
+
+    tokens.iter().for_each(|x| println!("{x}"));
 }
