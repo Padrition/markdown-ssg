@@ -7,6 +7,8 @@ pub enum TokenType {
     Underscore,
     Dash,
     Tilde,
+    Content,
+    NewLine,
     EOF,
 }
 

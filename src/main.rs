@@ -1,13 +1,11 @@
 mod lexer;
 mod markdown;
 
-use markdown::{parse_heading, parse_paragraph};
 use std::env;
 use std::io;
 use std::io::Write;
 
 use crate::lexer::ErrorHandler;
-use crate::lexer::error_handler;
 use crate::lexer::lexer::Lexer;
 
 fn main() {
@@ -24,7 +22,7 @@ fn main() {
 }
 
 fn run_repl() {
-    while true {
+    loop {
         println!("> ");
         io::stdout().flush().unwrap();
 
