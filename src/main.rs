@@ -11,11 +11,11 @@ use crate::lexer::lexer::Lexer;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let file_name = &args[1];
 
     if args.len() > 2 {
         println!("Use :");
     } else if args.len() == 2 {
+        let file_name = &args[1];
         println!("Lexing file: {file_name}");
         run_on_file(file_name);
     } else {

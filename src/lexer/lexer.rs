@@ -27,7 +27,13 @@ impl<'a> Lexer<'a> {
             '#' => self.add_token(TokenType::Hash),
             '*' => self.add_token(TokenType::Star),
             '_' => self.add_token(TokenType::Underscore),
-            '-' => self.add_token(TokenType::Dash),
+            '-' => {
+                if self.matching(' ') {
+                    self.add_token(TokenType::Dash)
+                } else {
+                    self.scan_text();
+                }
+            }
             '~' => self.add_token(TokenType::Tilde),
             ' ' => {}
             '\t' => {}
@@ -35,12 +41,10 @@ impl<'a> Lexer<'a> {
                 self.add_token(TokenType::NewLine);
                 self.line += 1;
             }
+
             _ => {
-                if !self.is_special(c) {
+                if !self.is_content_closing(c) {
                     self.scan_text();
-                } else {
-                    self.error_handler
-                        .log_error(self.line, self.current, "Unexpected character.");
                 }
             }
         }
@@ -50,7 +54,7 @@ impl<'a> Lexer<'a> {
         while !self.is_at_end() {
             let c = self.peak();
 
-            if self.is_special(c) {
+            if self.is_content_closing(c) {
                 break;
             }
 
@@ -59,8 +63,12 @@ impl<'a> Lexer<'a> {
         self.add_token(TokenType::Content);
     }
 
-    fn is_special(&self, c: char) -> bool {
-        matches!(c, '#' | '*' | '_' | '-' | '~' | '\n' | '\0')
+    fn is_content_closing(&mut self, c: char) -> bool {
+        match c {
+            '\0' | '\n' => true,
+            '#' => self.matching(' '),
+            _ => false,
+        }
     }
 
     fn peak(&self) -> char {
