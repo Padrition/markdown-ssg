@@ -60,7 +60,7 @@ impl<'a> Lexer<'a> {
     }
 
     fn is_special(&self, c: char) -> bool {
-        matches!(c, '#' | '*' | '_' | '-' | '~' | '\0')
+        matches!(c, '#' | '*' | '_' | '-' | '~' | '\n' | '\0')
     }
 
     fn peak(&self) -> char {

@@ -2,6 +2,7 @@ mod lexer;
 mod markdown;
 
 use std::env;
+use std::fs;
 use std::io;
 use std::io::Write;
 
@@ -10,15 +11,21 @@ use crate::lexer::lexer::Lexer;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
+    let file_name = &args[1];
 
     if args.len() > 2 {
         println!("Use :");
     } else if args.len() == 2 {
-        println!("Lexing file:")
+        println!("Lexing file: {file_name}");
+        run_on_file(file_name);
     } else {
         println!("Enter markdown code");
         run_repl();
     }
+}
+fn run_on_file(file_name: &String) {
+    let source = fs::read_to_string(&file_name).unwrap();
+    run(source);
 }
 
 fn run_repl() {
@@ -37,5 +44,5 @@ fn run(source: String) {
     let mut lexer = Lexer::new(source, &mut error_handler);
     let tokens = lexer.scan_tokens();
 
-    tokens.iter().for_each(|x| println!("{x}"));
+    tokens.iter().for_each(|x| print!("{x}"));
 }

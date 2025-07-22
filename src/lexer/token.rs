@@ -16,12 +16,12 @@ pub enum TokenType {
 pub struct Token {
     token_type: TokenType,
     lexeme: String,
-    line: usize,
+    pub line: usize,
 }
 
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Type: {:?} input: {}", self.token_type, self.lexeme)
+        write!(f, "({:?}) {}", self.token_type, self.lexeme)
     }
 }
 
