@@ -11,10 +11,10 @@ pub enum InLineNode {
 impl Node for InLineNode {
     fn accept<T>(&self, visitor: &mut dyn super::visitor::NodeVisitor<T>) -> T {
         match self {
-            InLineNode::Text(_) => visitor.visit_text(self),
-            InLineNode::Emphasis(_) => visitor.visit_emphasis(self),
-            InLineNode::Strong(_) => visitor.visit_strong(self),
-            InLineNode::Strikethrough(_) => visitor.visit_strikethrough(self),
+            InLineNode::Text(text) => visitor.visit_text(text),
+            InLineNode::Emphasis(content) => visitor.visit_emphasis(content),
+            InLineNode::Strong(content) => visitor.visit_strong(content),
+            InLineNode::Strikethrough(content) => visitor.visit_strikethrough(content),
         }
     }
 }
