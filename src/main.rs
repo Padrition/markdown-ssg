@@ -12,6 +12,7 @@ use crate::lexer::lexer::Lexer;
 use crate::parser::ast_printer::AstPrinter;
 use crate::parser::in_line_node::InLineNode::{Emphasis, Strikethrough, Strong, Text};
 use crate::parser::markdown_node::MarkdownNode::{Heading, Paragraph};
+use crate::parser::parser::Parser;
 
 fn main() {
     let ast = vec![
@@ -65,5 +66,17 @@ fn run(source: String) {
     let mut lexer = Lexer::new(source, &mut error_handler);
     let tokens = lexer.scan_tokens();
 
+    println!("Lexer output:\n");
     tokens.iter().for_each(|x| print!("{x}"));
+
+    let mut parser = Parser::new(tokens);
+    let ast = parser.parse();
+    let mut printer = AstPrinter;
+    print!("Parser output:\n");
+    match ast {
+        parser::ast_node::AstNode::Block(markdown_node) => {
+            println!("{}", printer.print(&markdown_node))
+        }
+        parser::ast_node::AstNode::InLineNode(in_line_node) => todo!(),
+    }
 }

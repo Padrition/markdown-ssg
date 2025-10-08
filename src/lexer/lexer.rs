@@ -25,7 +25,13 @@ impl<'a> Lexer<'a> {
         let c = self.advance();
         match c {
             '#' => self.add_token(TokenType::Hash),
-            '*' => self.add_token(TokenType::Star),
+            '*' => {
+                if self.matching('*') {
+                    self.add_token(TokenType::DoubleStar);
+                } else {
+                    self.add_token(TokenType::Star)
+                }
+            }
             '_' => self.add_token(TokenType::Underscore),
             '-' => {
                 if self.matching(' ') {

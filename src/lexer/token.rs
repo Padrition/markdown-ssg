@@ -1,9 +1,10 @@
 use std::fmt;
 
-#[derive(Debug, Clone)]
+#[derive(Copy, Debug, Clone, PartialEq)]
 pub enum TokenType {
     Hash,
     Star,
+    DoubleStar,
     Underscore,
     Dash,
     Tilde,
@@ -14,8 +15,8 @@ pub enum TokenType {
 
 #[derive(Clone)]
 pub struct Token {
-    token_type: TokenType,
-    lexeme: String,
+    pub token_type: TokenType,
+    pub lexeme: String,
     pub line: usize,
 }
 
