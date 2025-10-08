@@ -41,8 +41,6 @@ impl Parser {
 
         let content = self.in_line_until(&[TokenType::NewLine]);
 
-        //self.consume(TokenType::NewLine, "Expected a new line");
-
         AstNode::Block(MarkdownNode::Heading {
             level: level,
             content: content,

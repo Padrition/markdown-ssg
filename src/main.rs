@@ -72,7 +72,8 @@ fn run(source: String) {
     let mut parser = Parser::new(tokens);
     let ast = parser.parse();
     let mut printer = AstPrinter;
-    print!("Parser output:\n");
+
+    print!("\nParser output:\n");
     match ast {
         parser::ast_node::AstNode::Block(markdown_node) => {
             println!("{}", printer.print(&markdown_node))

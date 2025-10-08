@@ -71,7 +71,7 @@ impl<'a> Lexer<'a> {
 
     fn is_content_closing(&mut self, c: char) -> bool {
         match c {
-            '\0' | '\n' => true,
+            '\0' | '\n' | '*' | '_' | '-' | '~' => true,
             '#' => self.matching(' '),
             _ => false,
         }
