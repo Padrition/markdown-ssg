@@ -1,29 +1,58 @@
 mod lexer;
 mod markdown;
+mod parser;
 
 use std::env;
+use std::fs;
 use std::io;
 use std::io::Write;
 
 use crate::lexer::ErrorHandler;
 use crate::lexer::lexer::Lexer;
+use crate::parser::ast_printer::AstPrinter;
+use crate::parser::in_line_node::InLineNode::{Emphasis, Strikethrough, Strong, Text};
+use crate::parser::markdown_node::MarkdownNode::{Heading, Paragraph};
+use crate::parser::parser::Parser;
 
 fn main() {
+    let ast = vec![
+        Heading {
+            level: 2,
+            content: vec![Strong(vec![Text("Hello".into())]), Text("world".into())],
+        },
+        Paragraph(vec![
+            Text("This is".into()),
+            Emphasis(vec![Text(" emphasized".into())]),
+            Text(".".into()),
+        ]),
+    ];
+
+    let mut printer = AstPrinter;
+    for node in ast {
+        println!("{}", printer.print(&node));
+    }
+
     let args: Vec<String> = env::args().collect();
 
     if args.len() > 2 {
         println!("Use :");
     } else if args.len() == 2 {
-        println!("Lexing file:")
+        let file_name = &args[1];
+        println!("Lexing file: {file_name}");
+        run_on_file(file_name);
     } else {
         println!("Enter markdown code");
         run_repl();
     }
 }
+fn run_on_file(file_name: &String) {
+    let source = fs::read_to_string(&file_name).unwrap();
+    run(source);
+}
 
 fn run_repl() {
     loop {
-        println!("> ");
+        print!("> ");
         io::stdout().flush().unwrap();
 
         let mut input = String::new();
@@ -37,5 +66,18 @@ fn run(source: String) {
     let mut lexer = Lexer::new(source, &mut error_handler);
     let tokens = lexer.scan_tokens();
 
-    tokens.iter().for_each(|x| println!("{x}"));
+    println!("Lexer output:\n");
+    tokens.iter().for_each(|x| print!("{x}"));
+
+    let mut parser = Parser::new(tokens);
+    let ast = parser.parse();
+    let mut printer = AstPrinter;
+
+    print!("\nParser output:\n");
+    match ast {
+        parser::ast_node::AstNode::Block(markdown_node) => {
+            println!("{}", printer.print(&markdown_node))
+        }
+        parser::ast_node::AstNode::InLineNode(in_line_node) => todo!(),
+    }
 }

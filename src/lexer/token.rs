@@ -1,9 +1,10 @@
 use std::fmt;
 
-#[derive(Debug, Clone)]
+#[derive(Copy, Debug, Clone, PartialEq)]
 pub enum TokenType {
     Hash,
     Star,
+    DoubleStar,
     Underscore,
     Dash,
     Tilde,
@@ -14,14 +15,19 @@ pub enum TokenType {
 
 #[derive(Clone)]
 pub struct Token {
-    token_type: TokenType,
-    lexeme: String,
-    line: usize,
+    pub token_type: TokenType,
+    pub lexeme: String,
+    pub line: usize,
 }
 
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Type: {:?} input: {}", self.token_type, self.lexeme)
+        write!(
+            f,
+            "({:?} {})",
+            self.token_type,
+            self.lexeme.escape_default()
+        )
     }
 }
 
