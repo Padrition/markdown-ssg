@@ -17,20 +17,25 @@ impl Parser {
         }
     }
 
-    pub fn parse(&mut self) -> AstNode {
+    pub fn parse(&mut self) -> Vec<AstNode> {
         self.document()
     }
 
-    fn document(&mut self) -> AstNode {
+    fn document(&mut self) -> Vec<AstNode> {
         self.block()
     }
 
-    fn block(&mut self) -> AstNode {
-        if self.match_tokens(&[TokenType::Hash]) {
-            self.heading()
-        } else {
-            self.paragraph()
+    fn block(&mut self) -> Vec<AstNode> {
+        let mut nodes = Vec::new();
+        while !self.is_at_end() {
+            if self.match_tokens(&[TokenType::Hash]) {
+                nodes.push(self.heading());
+            } else {
+                nodes.push(self.paragraph());
+            }
         }
+
+        nodes
     }
 
     fn heading(&mut self) -> AstNode {
