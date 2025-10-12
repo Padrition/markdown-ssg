@@ -52,7 +52,7 @@ fn run_on_file(file_name: &String) {
 
 fn run_repl() {
     loop {
-        println!("> ");
+        print!("> ");
         io::stdout().flush().unwrap();
 
         let mut input = String::new();

@@ -48,7 +48,16 @@ impl Parser {
     }
 
     fn paragraph(&mut self) -> AstNode {
-        todo!()
+        let mut nodes = Vec::new();
+        while !self.is_at_end() && !self.match_tokens(&[TokenType::NewLine]) {
+            let mut content = self.in_line_until(&[TokenType::NewLine]);
+            //skip new line token
+            self.advance();
+
+            nodes.append(&mut content);
+        }
+
+        AstNode::Block(MarkdownNode::Paragraph(nodes))
     }
 
     fn in_line_until(&mut self, stop_tokens: &[TokenType]) -> Vec<InLineNode> {
