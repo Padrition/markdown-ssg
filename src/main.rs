@@ -54,11 +54,6 @@ fn run(source: String) {
     let asts = parser.parse();
     let mut printer = AstPrinter;
 
-    print!("\nParser output:\n");
-    asts.iter().for_each(|ast| match ast {
-        parser::ast_node::AstNode::Block(markdown_node) => {
-            println!("{}", printer.print(&markdown_node))
-        }
-        parser::ast_node::AstNode::InLineNode(in_line_node) => todo!(),
-    });
+    println!("Parser output:\n");
+    asts.iter().for_each(|ast| print!("{}", printer.print(ast)));
 }

@@ -1,8 +1,5 @@
+use crate::lexer::{Token, TokenType};
 use crate::parser::{in_line_node::InLineNode, markdown_node::MarkdownNode};
-use crate::{
-    lexer::{Token, TokenType},
-    parser::ast_node::AstNode,
-};
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -17,15 +14,15 @@ impl Parser {
         }
     }
 
-    pub fn parse(&mut self) -> Vec<AstNode> {
+    pub fn parse(&mut self) -> Vec<MarkdownNode> {
         self.document()
     }
 
-    fn document(&mut self) -> Vec<AstNode> {
+    fn document(&mut self) -> Vec<MarkdownNode> {
         self.block()
     }
 
-    fn block(&mut self) -> Vec<AstNode> {
+    fn block(&mut self) -> Vec<MarkdownNode> {
         let mut nodes = Vec::new();
         while !self.is_at_end() {
             if self.match_tokens(&[TokenType::Hash]) {
@@ -38,7 +35,7 @@ impl Parser {
         nodes
     }
 
-    fn heading(&mut self) -> AstNode {
+    fn heading(&mut self) -> MarkdownNode {
         let mut level = 1;
         while self.match_tokens(&[TokenType::Hash]) {
             level += 1;
@@ -46,13 +43,13 @@ impl Parser {
 
         let content = self.in_line_until(&[TokenType::NewLine]);
 
-        AstNode::Block(MarkdownNode::Heading {
+        MarkdownNode::Heading {
             level: level,
             content: content,
-        })
+        }
     }
 
-    fn paragraph(&mut self) -> AstNode {
+    fn paragraph(&mut self) -> MarkdownNode {
         let mut nodes = Vec::new();
         while !self.is_at_end() && !self.match_tokens(&[TokenType::NewLine]) {
             let mut content = self.in_line_until(&[TokenType::NewLine]);
@@ -62,7 +59,7 @@ impl Parser {
             nodes.append(&mut content);
         }
 
-        AstNode::Block(MarkdownNode::Paragraph(nodes))
+        MarkdownNode::Paragraph(nodes)
     }
 
     fn in_line_until(&mut self, stop_tokens: &[TokenType]) -> Vec<InLineNode> {
