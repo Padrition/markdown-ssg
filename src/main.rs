@@ -1,5 +1,4 @@
 mod lexer;
-mod markdown;
 mod parser;
 
 use std::env;
