@@ -5,9 +5,9 @@ use crate::{
     transformer::html_node::HtmlNode,
 };
 
-pub struct HtmlTransformer;
+pub struct HtmlAstTransformer;
 
-impl HtmlTransformer {
+impl HtmlAstTransformer {
     pub fn transform(&mut self, node: &MarkdownNode) -> HtmlNode {
         node.accept(self)
     }
@@ -17,7 +17,7 @@ impl HtmlTransformer {
     }
 }
 
-impl NodeVisitor<HtmlNode> for HtmlTransformer {
+impl NodeVisitor<HtmlNode> for HtmlAstTransformer {
     fn visit_text(&mut self, text: &str) -> HtmlNode {
         HtmlNode::Text(text.to_string())
     }

@@ -10,8 +10,8 @@ use std::io::Write;
 use crate::lexer::lexer::Lexer;
 use crate::parser::ast_printer::AstPrinter;
 use crate::parser::parser::Parser;
+use crate::transformer::html_ast_transform::HtmlAstTransformer;
 use crate::transformer::html_node::HtmlNode;
-use crate::transformer::html_transform::HtmlTransformer;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -59,7 +59,7 @@ fn run(source: String) {
     asts.iter().for_each(|ast| print!("{}", printer.print(ast)));
     println!();
 
-    let mut transformer = HtmlTransformer;
+    let mut transformer = HtmlAstTransformer;
 
     println!("Transform to html:");
     let hast: Vec<HtmlNode> = asts.iter().map(|ast| transformer.transform(ast)).collect();
