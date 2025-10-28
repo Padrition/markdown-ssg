@@ -1,23 +1,21 @@
-use crate::lexer::{ErrorHandler, Token, TokenType};
+use crate::lexer::{Token, TokenType};
 
-pub struct Lexer<'a> {
+pub struct Lexer {
     source: String,
     tokens: Vec<Token>,
     start: usize,
     current: usize,
     line: usize,
-    error_handler: &'a mut ErrorHandler,
 }
 
-impl<'a> Lexer<'a> {
-    pub fn new(source: String, error_handler: &'a mut ErrorHandler) -> Self {
+impl Lexer {
+    pub fn new(source: String) -> Self {
         Lexer {
             source,
             tokens: vec![],
             start: 0,
             current: 0,
             line: 0,
-            error_handler: error_handler,
         }
     }
 
