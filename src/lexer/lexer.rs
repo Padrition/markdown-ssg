@@ -89,8 +89,12 @@ impl Lexer {
             self.scan_token();
         }
 
-        self.tokens
-            .push(Token::new(TokenType::EOF, "".to_string(), self.line));
+        self.tokens.push(Token::new(
+            TokenType::EOF,
+            "".to_string(),
+            self.line,
+            self.current,
+        ));
         self.tokens.clone()
     }
 
@@ -106,7 +110,8 @@ impl Lexer {
 
     fn add_token(&mut self, token_type: TokenType) {
         let text = String::from(&self.source[self.start..self.current]);
-        self.tokens.push(Token::new(token_type, text, self.line));
+        self.tokens
+            .push(Token::new(token_type, text, self.line, self.current));
     }
 
     fn matching(&mut self, expected: char) -> bool {

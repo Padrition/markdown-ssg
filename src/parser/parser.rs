@@ -42,6 +42,8 @@ impl Parser {
         }
 
         let content = self.in_line_until(&[TokenType::NewLine]);
+        //skip new line token
+        self.advance();
 
         MarkdownNode::Heading {
             level: level,
@@ -93,7 +95,9 @@ impl Parser {
             return self.advance();
         }
 
-        panic!("{}", msg);
+        let token = self.peek();
+
+        panic!("{} at char: {} line: {}", msg, token.line + 1, token.pos);
     }
 
     fn peek_match_tokens(&mut self, types: &[TokenType]) -> bool {

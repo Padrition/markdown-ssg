@@ -11,7 +11,7 @@ impl HtmlTransformer {
                 children,
             } => {
                 let inner: String = children.iter().map(|c| self.transform(c)).collect();
-                format!("<{tag}> {inner} </{tag}>")
+                format!("<{tag}>{inner}</{tag}>")
             }
             HtmlNode::Text(text) => text.clone(),
         }
