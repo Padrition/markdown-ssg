@@ -1,37 +1,20 @@
 mod lexer;
-mod markdown;
 mod parser;
+mod transformer;
 
 use std::env;
 use std::fs;
 use std::io;
 use std::io::Write;
 
-use crate::lexer::ErrorHandler;
 use crate::lexer::lexer::Lexer;
 use crate::parser::ast_printer::AstPrinter;
-use crate::parser::in_line_node::InLineNode::{Emphasis, Strikethrough, Strong, Text};
-use crate::parser::markdown_node::MarkdownNode::{Heading, Paragraph};
 use crate::parser::parser::Parser;
+use crate::transformer::html_ast_transform::HtmlAstTransformer;
+use crate::transformer::html_node::HtmlNode;
+use crate::transformer::html_transform::HtmlTransformer;
 
 fn main() {
-    let ast = vec![
-        Heading {
-            level: 2,
-            content: vec![Strong(vec![Text("Hello".into())]), Text("world".into())],
-        },
-        Paragraph(vec![
-            Text("This is".into()),
-            Emphasis(vec![Text(" emphasized".into())]),
-            Text(".".into()),
-        ]),
-    ];
-
-    let mut printer = AstPrinter;
-    for node in ast {
-        println!("{}", printer.print(&node));
-    }
-
     let args: Vec<String> = env::args().collect();
 
     if args.len() > 2 {
@@ -62,22 +45,35 @@ fn run_repl() {
 }
 
 fn run(source: String) {
-    let mut error_handler = ErrorHandler::new();
-    let mut lexer = Lexer::new(source, &mut error_handler);
+    let mut lexer = Lexer::new(source);
     let tokens = lexer.scan_tokens();
 
-    println!("Lexer output:\n");
+    println!("Lexer output:");
     tokens.iter().for_each(|x| print!("{x}"));
+    println!();
 
     let mut parser = Parser::new(tokens);
-    let ast = parser.parse();
+    let asts = parser.parse();
     let mut printer = AstPrinter;
 
-    print!("\nParser output:\n");
-    match ast {
-        parser::ast_node::AstNode::Block(markdown_node) => {
-            println!("{}", printer.print(&markdown_node))
-        }
-        parser::ast_node::AstNode::InLineNode(in_line_node) => todo!(),
-    }
+    println!("Parser output:");
+    asts.iter().for_each(|ast| print!("{}", printer.print(ast)));
+    println!();
+
+    let mut ast_trans = HtmlAstTransformer;
+
+    println!("Transform to html:");
+    let hast: Vec<HtmlNode> = asts.iter().map(|ast| ast_trans.transform(ast)).collect();
+    hast.iter().for_each(|h| print!("{:?}", h));
+    println!();
+
+    let html_trans = HtmlTransformer;
+
+    println!("Html output:");
+    let out: String = hast
+        .iter()
+        .map(|h| html_trans.transform(h))
+        .collect::<Vec<_>>()
+        .join("");
+    println!("{}", out);
 }

@@ -1,8 +1,5 @@
+use crate::lexer::{Token, TokenType};
 use crate::parser::{in_line_node::InLineNode, markdown_node::MarkdownNode};
-use crate::{
-    lexer::{Token, TokenType},
-    parser::ast_node::AstNode,
-};
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -17,37 +14,44 @@ impl Parser {
         }
     }
 
-    pub fn parse(&mut self) -> AstNode {
+    pub fn parse(&mut self) -> Vec<MarkdownNode> {
         self.document()
     }
 
-    fn document(&mut self) -> AstNode {
+    fn document(&mut self) -> Vec<MarkdownNode> {
         self.block()
     }
 
-    fn block(&mut self) -> AstNode {
-        if self.match_tokens(&[TokenType::Hash]) {
-            self.heading()
-        } else {
-            self.paragraph()
+    fn block(&mut self) -> Vec<MarkdownNode> {
+        let mut nodes = Vec::new();
+        while !self.is_at_end() {
+            if self.match_tokens(&[TokenType::Hash]) {
+                nodes.push(self.heading());
+            } else {
+                nodes.push(self.paragraph());
+            }
         }
+
+        nodes
     }
 
-    fn heading(&mut self) -> AstNode {
+    fn heading(&mut self) -> MarkdownNode {
         let mut level = 1;
         while self.match_tokens(&[TokenType::Hash]) {
             level += 1;
         }
 
         let content = self.in_line_until(&[TokenType::NewLine]);
+        //skip new line token
+        self.advance();
 
-        AstNode::Block(MarkdownNode::Heading {
+        MarkdownNode::Heading {
             level: level,
             content: content,
-        })
+        }
     }
 
-    fn paragraph(&mut self) -> AstNode {
+    fn paragraph(&mut self) -> MarkdownNode {
         let mut nodes = Vec::new();
         while !self.is_at_end() && !self.match_tokens(&[TokenType::NewLine]) {
             let mut content = self.in_line_until(&[TokenType::NewLine]);
@@ -57,7 +61,7 @@ impl Parser {
             nodes.append(&mut content);
         }
 
-        AstNode::Block(MarkdownNode::Paragraph(nodes))
+        MarkdownNode::Paragraph(nodes)
     }
 
     fn in_line_until(&mut self, stop_tokens: &[TokenType]) -> Vec<InLineNode> {
@@ -91,7 +95,9 @@ impl Parser {
             return self.advance();
         }
 
-        panic!("{}", msg);
+        let token = self.peek();
+
+        panic!("{} at char: {} line: {}", msg, token.line + 1, token.pos);
     }
 
     fn peek_match_tokens(&mut self, types: &[TokenType]) -> bool {
