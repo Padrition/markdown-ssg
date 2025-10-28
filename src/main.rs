@@ -12,6 +12,7 @@ use crate::parser::ast_printer::AstPrinter;
 use crate::parser::parser::Parser;
 use crate::transformer::html_ast_transform::HtmlAstTransformer;
 use crate::transformer::html_node::HtmlNode;
+use crate::transformer::html_transform::HtmlTransformer;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -59,10 +60,20 @@ fn run(source: String) {
     asts.iter().for_each(|ast| print!("{}", printer.print(ast)));
     println!();
 
-    let mut transformer = HtmlAstTransformer;
+    let mut ast_trans = HtmlAstTransformer;
 
     println!("Transform to html:");
-    let hast: Vec<HtmlNode> = asts.iter().map(|ast| transformer.transform(ast)).collect();
+    let hast: Vec<HtmlNode> = asts.iter().map(|ast| ast_trans.transform(ast)).collect();
     hast.iter().for_each(|h| print!("{:?}", h));
     println!();
+
+    let html_trans = HtmlTransformer;
+
+    println!("Html output:");
+    let out: String = hast
+        .iter()
+        .map(|h| html_trans.transform(h))
+        .collect::<Vec<_>>()
+        .join("");
+    println!("{}", out);
 }
