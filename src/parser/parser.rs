@@ -97,7 +97,7 @@ impl Parser {
 
         let token = self.peek();
 
-        panic!("{} at char: {} line: {}", msg, token.line + 1, token.pos);
+        panic!("{} at char: {} line: {}", msg, token.line, token.pos);
     }
 
     fn peek_match_tokens(&mut self, types: &[TokenType]) -> bool {

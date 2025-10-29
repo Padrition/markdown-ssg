@@ -15,7 +15,7 @@ impl Lexer {
             tokens: vec![],
             start: 0,
             current: 0,
-            line: 0,
+            line: 1,
         }
     }
 
@@ -93,7 +93,7 @@ impl Lexer {
             TokenType::EOF,
             "".to_string(),
             self.line,
-            self.current,
+            self.start,
         ));
         self.tokens.clone()
     }
@@ -111,7 +111,7 @@ impl Lexer {
     fn add_token(&mut self, token_type: TokenType) {
         let text = String::from(&self.source[self.start..self.current]);
         self.tokens
-            .push(Token::new(token_type, text, self.line, self.current));
+            .push(Token::new(token_type, text, self.line, self.start));
     }
 
     fn matching(&mut self, expected: char) -> bool {
