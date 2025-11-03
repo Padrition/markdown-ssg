@@ -13,10 +13,8 @@ fn main() {
         println!("Use :");
     } else if args.len() == 2 {
         let file_name = &args[1];
-        println!("Lexing file: {file_name}");
         run_on_file(file_name);
     } else {
-        println!("Enter markdown code");
         run_repl();
     }
 }

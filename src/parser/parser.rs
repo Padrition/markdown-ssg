@@ -27,12 +27,20 @@ impl Parser {
         while !self.is_at_end() {
             if self.match_tokens(&[TokenType::Hash]) {
                 nodes.push(self.heading());
+            } else if self.match_tokens(&[TokenType::NewLine]) {
+                self.line_breaks();
             } else {
                 nodes.push(self.paragraph());
             }
         }
 
         nodes
+    }
+
+    fn line_breaks(&mut self) {
+        while !self.is_at_end() && self.match_tokens(&[TokenType::NewLine]) {
+            // consume new lines
+        }
     }
 
     fn heading(&mut self) -> MarkdownNode {

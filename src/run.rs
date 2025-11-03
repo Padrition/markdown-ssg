@@ -10,11 +10,13 @@ use crate::transformer::html_node::HtmlNode;
 use crate::transformer::html_transform::HtmlTransformer;
 
 pub fn run_on_file(file_name: &String) {
+    println!("Lexing file: {file_name}");
     let source = fs::read_to_string(&file_name).unwrap();
     run(source);
 }
 
 pub fn run_repl() {
+    println!("Enter markdown code");
     loop {
         print!("> ");
         io::stdout().flush().unwrap();
