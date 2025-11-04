@@ -66,6 +66,10 @@ impl Parser {
             //skip new line token
             self.advance();
 
+            if !self.peek_match_tokens(&[TokenType::NewLine]) {
+                content.push(InLineNode::Text(" ".to_string()));
+            }
+
             nodes.append(&mut content);
         }
 
