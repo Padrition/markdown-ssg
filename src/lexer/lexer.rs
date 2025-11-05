@@ -45,8 +45,9 @@ impl Lexer {
                     self.scan_text();
                 }
             }
-            ' ' => {}
-            '\t' => {}
+            ' ' | '\t' => {
+                self.scan_whitespace();
+            }
             '\n' => {
                 self.add_token(TokenType::NewLine);
                 self.line += 1;
@@ -58,6 +59,14 @@ impl Lexer {
                 }
             }
         }
+    }
+
+    fn scan_whitespace(&mut self) {
+        while matches!(self.peak(), ' ' | '\t') && !self.is_at_end() {
+            self.advance();
+        }
+
+        self.add_token(TokenType::Whitespace);
     }
 
     fn scan_text(&mut self) {
@@ -115,7 +124,12 @@ impl Lexer {
     }
 
     fn add_token(&mut self, token_type: TokenType) {
-        let text = String::from(&self.source[self.start..self.current]);
+        let mut text = String::from(&self.source[self.start..self.current]);
+
+        if token_type == TokenType::Whitespace {
+            text = " ".to_string();
+        }
+
         self.tokens
             .push(Token::new(token_type, text, self.line, self.start));
     }

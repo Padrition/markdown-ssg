@@ -66,8 +66,8 @@ impl Parser {
             //skip new line token
             self.advance();
 
-            if !self.peek_match_tokens(&[TokenType::NewLine]) {
-                content.push(InLineNode::Text(" ".to_string()));
+            if !self.is_at_end() && !self.peek_match_tokens(&[TokenType::NewLine]) {
+                self.push_text_node(&mut content, " ".to_string());
             }
 
             nodes.append(&mut content);
@@ -93,13 +93,29 @@ impl Parser {
                 self.consume(TokenType::Tilde, "Expected a closing ~");
                 nodes.push(InLineNode::Strikethrough(content));
             } else {
-                let node =
-                    InLineNode::Text(self.consume(TokenType::Content, "Expected content").lexeme);
-                nodes.push(node);
+                let token = if self.peek_match_tokens(&[TokenType::Whitespace]) {
+                    self.consume(TokenType::Whitespace, "Expected whitespace")
+                } else {
+                    self.consume(TokenType::Content, "Expected content")
+                };
+
+                self.push_text_node(&mut nodes, token.lexeme);
             }
         }
 
         nodes
+    }
+
+    fn push_text_node(&mut self, nodes: &mut Vec<InLineNode>, lexeme: String) {
+        if lexeme.trim().is_empty() && nodes.is_empty() {
+            return;
+        }
+
+        if let Some(InLineNode::Text(last_text)) = nodes.last_mut() {
+            last_text.push_str(&lexeme);
+        } else {
+            nodes.push(InLineNode::Text(lexeme));
+        }
     }
 
     fn consume(&mut self, token_type: TokenType, msg: &str) -> Token {
