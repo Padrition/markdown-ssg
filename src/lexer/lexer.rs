@@ -38,7 +38,13 @@ impl Lexer {
                     self.scan_text();
                 }
             }
-            '~' => self.add_token(TokenType::Tilde),
+            '~' => {
+                if self.matching('~') {
+                    self.add_token(TokenType::Tilde)
+                } else {
+                    self.scan_text();
+                }
+            }
             ' ' => {}
             '\t' => {}
             '\n' => {
