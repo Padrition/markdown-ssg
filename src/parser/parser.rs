@@ -27,12 +27,20 @@ impl Parser {
         while !self.is_at_end() {
             if self.match_tokens(&[TokenType::Hash]) {
                 nodes.push(self.heading());
+            } else if self.match_tokens(&[TokenType::NewLine]) {
+                self.line_breaks();
             } else {
                 nodes.push(self.paragraph());
             }
         }
 
         nodes
+    }
+
+    fn line_breaks(&mut self) {
+        while !self.is_at_end() && self.match_tokens(&[TokenType::NewLine]) {
+            // consume new lines
+        }
     }
 
     fn heading(&mut self) -> MarkdownNode {
@@ -58,6 +66,10 @@ impl Parser {
             //skip new line token
             self.advance();
 
+            if !self.is_at_end() && !self.peek_match_tokens(&[TokenType::NewLine]) {
+                self.push_text_node(&mut content, " ".to_owned());
+            }
+
             nodes.append(&mut content);
         }
 
@@ -81,13 +93,29 @@ impl Parser {
                 self.consume(TokenType::Tilde, "Expected a closing ~");
                 nodes.push(InLineNode::Strikethrough(content));
             } else {
-                let node =
-                    InLineNode::Text(self.consume(TokenType::Content, "Expected content").lexeme);
-                nodes.push(node);
+                let token = if self.peek_match_tokens(&[TokenType::Whitespace]) {
+                    self.consume(TokenType::Whitespace, "Expected whitespace")
+                } else {
+                    self.consume(TokenType::Content, "Expected content")
+                };
+
+                self.push_text_node(&mut nodes, token.lexeme);
             }
         }
 
         nodes
+    }
+
+    fn push_text_node(&mut self, nodes: &mut Vec<InLineNode>, lexeme: String) {
+        if lexeme.trim().is_empty() && nodes.is_empty() {
+            return;
+        }
+
+        if let Some(InLineNode::Text(last_text)) = nodes.last_mut() {
+            last_text.push_str(&lexeme);
+        } else {
+            nodes.push(InLineNode::Text(lexeme));
+        }
     }
 
     fn consume(&mut self, token_type: TokenType, msg: &str) -> Token {
@@ -97,7 +125,7 @@ impl Parser {
 
         let token = self.peek();
 
-        panic!("{} at char: {} line: {}", msg, token.line + 1, token.pos);
+        panic!("{} at char: {} line: {}", msg, token.line, token.pos);
     }
 
     fn peek_match_tokens(&mut self, types: &[TokenType]) -> bool {

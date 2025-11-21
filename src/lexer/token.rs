@@ -2,14 +2,19 @@ use std::fmt;
 
 #[derive(Copy, Debug, Clone, PartialEq)]
 pub enum TokenType {
+    // layout
     Hash,
+    Dash,
+    NewLine,
+    // inline
     Star,
     DoubleStar,
     Underscore,
-    Dash,
     Tilde,
+    // content
     Content,
-    NewLine,
+    Whitespace,
+    // meta
     EOF,
 }
 

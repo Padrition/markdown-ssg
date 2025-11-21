@@ -15,7 +15,7 @@ impl Lexer {
             tokens: vec![],
             start: 0,
             current: 0,
-            line: 0,
+            line: 1,
         }
     }
 
@@ -38,9 +38,16 @@ impl Lexer {
                     self.scan_text();
                 }
             }
-            '~' => self.add_token(TokenType::Tilde),
-            ' ' => {}
-            '\t' => {}
+            '~' => {
+                if self.matching('~') {
+                    self.add_token(TokenType::Tilde)
+                } else {
+                    self.scan_text();
+                }
+            }
+            ' ' | '\t' => {
+                self.scan_whitespace();
+            }
             '\n' => {
                 self.add_token(TokenType::NewLine);
                 self.line += 1;
@@ -52,6 +59,14 @@ impl Lexer {
                 }
             }
         }
+    }
+
+    fn scan_whitespace(&mut self) {
+        while matches!(self.peak(), ' ' | '\t') && !self.is_at_end() {
+            self.advance();
+        }
+
+        self.add_token(TokenType::Whitespace);
     }
 
     fn scan_text(&mut self) {
@@ -91,9 +106,9 @@ impl Lexer {
 
         self.tokens.push(Token::new(
             TokenType::EOF,
-            "".to_string(),
+            "".to_owned(),
             self.line,
-            self.current,
+            self.start,
         ));
         self.tokens.clone()
     }
@@ -109,9 +124,14 @@ impl Lexer {
     }
 
     fn add_token(&mut self, token_type: TokenType) {
-        let text = String::from(&self.source[self.start..self.current]);
+        let mut text = String::from(&self.source[self.start..self.current]);
+
+        if token_type == TokenType::Whitespace {
+            text = " ".to_owned();
+        }
+
         self.tokens
-            .push(Token::new(token_type, text, self.line, self.current));
+            .push(Token::new(token_type, text, self.line, self.start));
     }
 
     fn matching(&mut self, expected: char) -> bool {
