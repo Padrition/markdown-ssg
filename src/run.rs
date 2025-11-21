@@ -9,10 +9,11 @@ use crate::transformer::html_ast_transform::HtmlAstTransformer;
 use crate::transformer::html_node::HtmlNode;
 use crate::transformer::html_transform::HtmlTransformer;
 
-pub fn run_on_file(file_name: &String) {
+pub fn run_on_file(file_name: &str, output_file_name: Option<&str>) {
     println!("Lexing file: {file_name}");
     let source = fs::read_to_string(&file_name).unwrap();
-    run(source);
+    let path = output_file_name.unwrap_or(file_name);
+    fs::write(path, run(source)).unwrap_or_else(|err| eprintln!("Failed to write file: {err}"));
 }
 
 pub fn run_repl() {
@@ -27,7 +28,7 @@ pub fn run_repl() {
     }
 }
 
-fn run(source: String) {
+fn run(source: String) -> String {
     let mut lexer = Lexer::new(source);
     let tokens = lexer.scan_tokens();
 
@@ -59,4 +60,5 @@ fn run(source: String) {
         .collect::<Vec<_>>()
         .join("");
     println!("{}", out);
+    out
 }

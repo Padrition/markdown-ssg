@@ -6,15 +6,23 @@ mod transformer;
 use run::{run_on_file, run_repl};
 use std::env;
 
-fn main() {
-    let args: Vec<String> = env::args().collect();
+use clap::Parser;
 
-    if args.len() > 2 {
-        println!("Use :");
-    } else if args.len() == 2 {
-        let file_name = &args[1];
-        run_on_file(file_name);
-    } else {
-        run_repl();
+#[derive(Parser)]
+#[command(version, about)]
+struct Cli {
+    // Optional markdown file name
+    file: Option<String>,
+
+    // Optional output file name
+    output: Option<String>,
+}
+
+fn main() {
+    let cli = Cli::parse();
+
+    match cli.file {
+        Some(file_name) => run_on_file(&file_name, cli.output.as_deref()),
+        None => run_repl(),
     }
 }
