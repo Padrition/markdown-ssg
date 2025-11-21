@@ -106,7 +106,7 @@ impl Lexer {
 
         self.tokens.push(Token::new(
             TokenType::EOF,
-            "".to_string(),
+            "".to_owned(),
             self.line,
             self.start,
         ));
@@ -127,7 +127,7 @@ impl Lexer {
         let mut text = String::from(&self.source[self.start..self.current]);
 
         if token_type == TokenType::Whitespace {
-            text = " ".to_string();
+            text = " ".to_owned();
         }
 
         self.tokens

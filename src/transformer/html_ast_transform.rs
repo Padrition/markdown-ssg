@@ -2,7 +2,7 @@ use crate::{
     parser::{
         in_line_node::InLineNode, markdown_node::MarkdownNode, node::Node, visitor::NodeVisitor,
     },
-    transformer::html_node::HtmlNode,
+    transformer::html_node::{Display, HtmlNode},
 };
 
 pub struct HtmlAstTransformer;
@@ -19,7 +19,7 @@ impl HtmlAstTransformer {
 
 impl NodeVisitor<HtmlNode> for HtmlAstTransformer {
     fn visit_text(&mut self, text: &str) -> HtmlNode {
-        HtmlNode::Text(text.to_string())
+        HtmlNode::Text(text.to_owned())
     }
 
     fn visit_emphasis(&mut self, content: &[InLineNode]) -> HtmlNode {
@@ -27,6 +27,7 @@ impl NodeVisitor<HtmlNode> for HtmlAstTransformer {
             tag: String::from("em"),
             attrs: vec![],
             children: self.transform_in_line(content),
+            display: Display::Inline,
         }
     }
 
@@ -35,6 +36,7 @@ impl NodeVisitor<HtmlNode> for HtmlAstTransformer {
             tag: String::from("strong"),
             attrs: vec![],
             children: self.transform_in_line(content),
+            display: Display::Inline,
         }
     }
 
@@ -43,6 +45,7 @@ impl NodeVisitor<HtmlNode> for HtmlAstTransformer {
             tag: String::from("del"),
             attrs: vec![],
             children: self.transform_in_line(content),
+            display: Display::Inline,
         }
     }
 
@@ -51,6 +54,7 @@ impl NodeVisitor<HtmlNode> for HtmlAstTransformer {
             tag: format!("h{}", level),
             attrs: vec![],
             children: self.transform_in_line(content),
+            display: Display::Block,
         }
     }
 
@@ -59,6 +63,7 @@ impl NodeVisitor<HtmlNode> for HtmlAstTransformer {
             tag: String::from("p"),
             attrs: vec![],
             children: self.transform_in_line(content),
+            display: Display::Block,
         }
     }
 }

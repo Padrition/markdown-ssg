@@ -67,7 +67,7 @@ impl Parser {
             self.advance();
 
             if !self.is_at_end() && !self.peek_match_tokens(&[TokenType::NewLine]) {
-                self.push_text_node(&mut content, " ".to_string());
+                self.push_text_node(&mut content, " ".to_owned());
             }
 
             nodes.append(&mut content);
