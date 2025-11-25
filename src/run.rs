@@ -1,6 +1,7 @@
 use std::fs;
 use std::io;
 use std::io::Write;
+use std::path::Path;
 
 use crate::lexer::lexer::Lexer;
 use crate::parser::ast_printer::AstPrinter;
@@ -14,7 +15,12 @@ pub fn run_on_file(file_name: &str, output_file_name: Option<&str>, verbose: boo
 
     let html = run(source, verbose);
 
-    let path = output_file_name.unwrap_or(file_name);
+    let path = output_file_name.map(|s| s.to_string()).unwrap_or_else(|| {
+        Path::new(file_name)
+            .with_extension("html")
+            .to_string_lossy()
+            .to_string()
+    });
     fs::write(path, html).unwrap_or_else(|err| eprintln!("Failed to write file: {err}"));
 }
 
