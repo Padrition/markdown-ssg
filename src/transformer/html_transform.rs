@@ -1,4 +1,4 @@
-use crate::transformer::html_node::HtmlNode;
+use crate::transformer::html_node::{Display, HtmlNode};
 
 pub struct HtmlTransformer;
 
@@ -16,12 +16,19 @@ impl HtmlTransformer {
                 display,
             } => {
                 let indent = match display {
-                    crate::transformer::html_node::Display::Inline => "",
-                    crate::transformer::html_node::Display::Block => &"\t".repeat(level),
+                    Display::Inline => String::new(),
+                    Display::Block => {
+                        let newline = if level > 0 { "\n" } else { "" };
+                        format!("{}{}", newline, &"\t".repeat(level))
+                    }
+                };
+                let child_indent = match display {
+                    Display::Inline => "",
+                    Display::Block => "\t",
                 };
                 let trailing = match display {
-                    crate::transformer::html_node::Display::Inline => "",
-                    crate::transformer::html_node::Display::Block => "\n",
+                    Display::Inline => "",
+                    Display::Block => "\n",
                 };
 
                 let inner: String = children
@@ -29,9 +36,7 @@ impl HtmlTransformer {
                     .map(|c| self.inner_transform(c, level + 1))
                     .collect();
 
-                let opening = format!("{indent}<{tag}>");
-                let closing = format!("{indent}{inner}</{tag}>");
-                format!("{opening}{closing}{trailing}")
+                format!("{indent}<{tag}>{indent}{child_indent}{inner}{indent}</{tag}>{trailing}")
             }
             HtmlNode::Text(text) => text.clone(),
         }

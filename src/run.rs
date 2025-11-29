@@ -11,6 +11,7 @@ use crate::parser::parser::Parser;
 use crate::transformer::html_ast_transform::HtmlAstTransformer;
 use crate::transformer::html_node::HtmlNode;
 use crate::transformer::html_transform::HtmlTransformer;
+use crate::transformer::html_wrapper::HtmlWrapper;
 
 pub fn run_on_file(file_name: &str, output_file_name: Option<&str>) {
     let source = fs::read_to_string(&file_name).unwrap();
@@ -65,13 +66,11 @@ fn run(source: String) -> String {
         hast.iter().map(|t| format!("{:?}", t)).collect::<String>()
     );
 
+    let hast = HtmlWrapper::wrap(hast);
+
     let html_trans = HtmlTransformer;
 
-    let out: String = hast
-        .iter()
-        .map(|h| html_trans.transform(h))
-        .collect::<Vec<_>>()
-        .join("");
+    let out = html_trans.transform(&hast);
 
     out
 }
