@@ -25,7 +25,7 @@ impl NodeVisitor<HtmlNode> for HtmlAstTransformer {
     fn visit_emphasis(&mut self, content: &[InLineNode]) -> HtmlNode {
         HtmlNode::Element {
             tag: String::from("em"),
-            attrs: vec![],
+            attrs: None,
             children: self.transform_in_line(content),
             display: Display::Inline,
         }
@@ -34,7 +34,7 @@ impl NodeVisitor<HtmlNode> for HtmlAstTransformer {
     fn visit_strong(&mut self, content: &[InLineNode]) -> HtmlNode {
         HtmlNode::Element {
             tag: String::from("strong"),
-            attrs: vec![],
+            attrs: None,
             children: self.transform_in_line(content),
             display: Display::Inline,
         }
@@ -43,7 +43,7 @@ impl NodeVisitor<HtmlNode> for HtmlAstTransformer {
     fn visit_strikethrough(&mut self, content: &[InLineNode]) -> HtmlNode {
         HtmlNode::Element {
             tag: String::from("del"),
-            attrs: vec![],
+            attrs: None,
             children: self.transform_in_line(content),
             display: Display::Inline,
         }
@@ -52,7 +52,7 @@ impl NodeVisitor<HtmlNode> for HtmlAstTransformer {
     fn visit_heading(&mut self, level: &usize, content: &[InLineNode]) -> HtmlNode {
         HtmlNode::Element {
             tag: format!("h{}", level),
-            attrs: vec![],
+            attrs: None,
             children: self.transform_in_line(content),
             display: Display::Block,
         }
@@ -61,7 +61,7 @@ impl NodeVisitor<HtmlNode> for HtmlAstTransformer {
     fn visit_paragraph(&mut self, content: &[InLineNode]) -> HtmlNode {
         HtmlNode::Element {
             tag: String::from("p"),
-            attrs: vec![],
+            attrs: None,
             children: self.transform_in_line(content),
             display: Display::Block,
         }

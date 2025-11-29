@@ -8,7 +8,7 @@ pub enum Display {
 pub enum HtmlNode {
     Element {
         tag: String,
-        attrs: Vec<(String, String)>,
+        attrs: Option<Vec<(String, String)>>,
         children: Vec<HtmlNode>,
         display: Display,
     },
