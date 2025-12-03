@@ -1,5 +1,3 @@
-use std::result;
-
 use crate::transformer::html_node::{Display, HtmlNode};
 
 pub struct HtmlWrapper;
