@@ -1,14 +1,17 @@
 mod lexer;
+mod logger;
 mod parser;
 mod run;
 mod transformer;
 
 use run::{run_on_file, run_repl};
-use std::{fs, io::Write, path::Path};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 use clap::Parser;
-use env_logger::Builder;
-use log::{LevelFilter, error};
+use log::error;
 
 use crate::run::run_on_dir;
 
@@ -28,36 +31,19 @@ struct Cli {
 fn main() {
     let cli = Cli::parse();
 
-    //Custom log messages
-    Builder::new()
-        .filter_level(if cli.verbose {
-            LevelFilter::max()
-        } else {
-            LevelFilter::Warn
-        })
-        .format(|buf, record| {
-            let warn_style = buf.default_level_style(record.level());
-            let level = record.level().to_string();
+    logger::init(cli.verbose);
 
-            writeln!(buf, "{warn_style}{level}:{warn_style:#}{}", record.args())
-        })
-        .init();
+    if let Some(path_str) = cli.path.as_deref() {
+        let path = Path::new(path_str);
+        let output_path = cli.output.as_deref().map(PathBuf::from);
 
-    match cli.path {
-        Some(path) => {
-            let path = Path::new(&path);
-
-            match fs::metadata(path) {
-                Ok(metadata) => {
-                    if metadata.is_file() {
-                        run_on_file(path, cli.output.as_deref())
-                    } else if metadata.is_dir() {
-                        run_on_dir(path);
-                    }
-                }
-                Err(err) => error!("Path can't be accepted {err}"),
-            }
+        match fs::metadata(path) {
+            Ok(m) if m.is_file() => run_on_file(path, output_path),
+            Ok(m) if m.is_dir() => run_on_dir(path),
+            Ok(_) => error!("Path is neither file nor dir"),
+            Err(err) => error!("Path can't be accepted {err}"),
         }
-        None => run_repl(),
-    }
+    } else {
+        run_repl();
+    };
 }

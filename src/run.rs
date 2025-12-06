@@ -15,20 +15,14 @@ use crate::transformer::html_node::HtmlNode;
 use crate::transformer::html_transform::HtmlTransformer;
 use crate::transformer::html_wrapper::HtmlWrapper;
 
-pub fn run_on_file(path: &Path, output_file_name: Option<&str>) {
+pub fn run_on_file(path: &Path, output_file_name: Option<PathBuf>) {
     let source = fs::read_to_string(&path).unwrap();
 
     let html = run(source);
 
-    let path = output_file_name
-        .map(|s| s.to_string())
-        .unwrap_or_else(|| match path.file_name() {
-            Some(e) => Path::new(e)
-                .with_extension("html")
-                .to_string_lossy()
-                .to_string(),
-            None => String::from("new_file.html"),
-        });
+    let path = output_file_name.unwrap_or_else(|| {
+        return Path::new(path).with_extension("html");
+    });
     fs::write(path, html).unwrap_or_else(|err| eprintln!("Failed to write file: {err}"));
 }
 
@@ -36,43 +30,27 @@ pub fn run_on_dir(path: &Path) {
     let dir = match fs::read_dir(path) {
         Ok(dir) => dir,
         Err(err) => {
-            error!("Error reading directory: {err}");
-            return;
+            return error!("Error reading directory: {err}");
         }
     };
 
     let mut files = vec![];
 
-    for entry_result in dir {
-        let entry = match entry_result {
-            Ok(e) => e,
-            Err(err) => {
-                error!("Error reading entry: {err}");
-                continue;
-            }
-        };
-
+    for entry in dir.filter_map(|r| r.map_err(|err| error!("Error reading entry: {err}")).ok()) {
         let path = entry.path();
-
-        if path.is_file() {
-            if let Some(ext) = path.extension() {
-                if ext == "md" {
-                    files.push(path);
-                }
-            }
+        if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("md") {
+            files.push(path);
         }
     }
+    let output_dir = Path::new("output");
+    let _ = fs::create_dir_all(output_dir);
 
-    files.iter().for_each(|f| {
-        let output_dir_name = "output";
-        let mut output_path = PathBuf::from(output_dir_name);
-
-        output_path.push(f.file_name().unwrap());
-        output_path = output_path.with_extension("html");
-
-        let _ = fs::create_dir_all(output_dir_name);
-        run_on_file(f, Some(&output_path.to_string_lossy().to_string()));
-    });
+    for f in files {
+        let output_path = output_dir
+            .join(f.file_name().unwrap())
+            .with_extension("html");
+        run_on_file(&f, Some(output_path));
+    }
 }
 
 pub fn run_repl() {
