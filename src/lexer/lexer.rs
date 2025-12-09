@@ -1,7 +1,7 @@
 use crate::lexer::{Token, TokenType};
 
 pub struct Lexer {
-    source: String,
+    source: Vec<char>,
     tokens: Vec<Token>,
     start: usize,
     current: usize,
@@ -10,8 +10,9 @@ pub struct Lexer {
 
 impl Lexer {
     pub fn new(source: String) -> Self {
+        let chars: Vec<char> = source.chars().collect();
         Lexer {
-            source,
+            source: chars,
             tokens: vec![],
             start: 0,
             current: 0,
@@ -95,7 +96,7 @@ impl Lexer {
             return '\0';
         }
 
-        self.source.chars().nth(self.current).unwrap()
+        self.source[self.current]
     }
 
     pub fn scan_tokens(&mut self) -> Vec<Token> {
@@ -124,21 +125,23 @@ impl Lexer {
     }
 
     fn add_token(&mut self, token_type: TokenType) {
-        let mut text = String::from(&self.source[self.start..self.current]);
+        let text: String = self.source[self.start..self.current].iter().collect();
 
-        if token_type == TokenType::Whitespace {
-            text = " ".to_owned();
-        }
+        let final_text = if token_type == TokenType::Whitespace {
+            " ".to_owned()
+        } else {
+            text
+        };
 
         self.tokens
-            .push(Token::new(token_type, text, self.line, self.start));
+            .push(Token::new(token_type, final_text, self.line, self.start));
     }
 
     fn matching(&mut self, expected: char) -> bool {
         if self.is_at_end() {
             return false;
         }
-        if self.source.chars().nth(self.current).unwrap() != expected {
+        if self.source[self.current] != expected {
             return false;
         }
 
