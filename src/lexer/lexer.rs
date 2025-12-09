@@ -2,7 +2,6 @@ use crate::lexer::{Token, TokenType};
 
 pub struct Lexer {
     source: Vec<char>,
-    source_string: String,
     tokens: Vec<Token>,
     start: usize,
     current: usize,
@@ -14,7 +13,6 @@ impl Lexer {
         let chars: Vec<char> = source.chars().collect();
         Lexer {
             source: chars,
-            source_string: source,
             tokens: vec![],
             start: 0,
             current: 0,
