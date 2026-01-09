@@ -92,6 +92,24 @@ impl Parser {
                 let content = self.in_line_until(&[TokenType::Tilde]);
                 self.consume(TokenType::Tilde, "Expected a closing ~");
                 nodes.push(InLineNode::Strikethrough(content));
+            } else if self.match_tokens(&[TokenType::OpeningBracket]) {
+                let content = self.in_line_until(&[TokenType::ClosingBracket]);
+                self.consume(TokenType::ClosingBracket, "Expected a ]");
+
+                self.consume(TokenType::OpeningParenthesis, "Expected a (");
+
+                let mut dest = String::new();
+                while !self.is_at_end() && !self.peek_match_tokens(&[TokenType::ClosingParenthesis])
+                {
+                    let token = self.advance();
+                    dest.push_str(&token.lexeme);
+                }
+                self.consume(TokenType::ClosingParenthesis, "Expected a )");
+
+                nodes.push(InLineNode::Link {
+                    content,
+                    dest: dest,
+                });
             } else {
                 let token = if self.peek_match_tokens(&[TokenType::Whitespace]) {
                     self.consume(TokenType::Whitespace, "Expected whitespace")
@@ -125,7 +143,7 @@ impl Parser {
 
         let token = self.peek();
 
-        panic!("{} at char: {} line: {}", msg, token.line, token.pos);
+        panic!("{} at char: {} line: {}", msg, token.pos, token.line);
     }
 
     fn peek_match_tokens(&mut self, types: &[TokenType]) -> bool {

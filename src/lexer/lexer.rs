@@ -24,6 +24,18 @@ impl Lexer {
         let c = self.advance();
         match c {
             '#' => self.add_token(TokenType::Hash),
+            '_' => self.add_token(TokenType::Underscore),
+            '[' => self.add_token(TokenType::OpeningBracket),
+            ']' => self.add_token(TokenType::ClosingBracket),
+            '(' => self.add_token(TokenType::OpeningParenthesis),
+            ')' => self.add_token(TokenType::ClosingParenthesis),
+            ' ' | '\t' => {
+                self.scan_whitespace();
+            }
+            '\n' => {
+                self.add_token(TokenType::NewLine);
+                self.line += 1;
+            }
             '*' => {
                 if self.matching('*') {
                     self.add_token(TokenType::DoubleStar);
@@ -31,7 +43,6 @@ impl Lexer {
                     self.add_token(TokenType::Star)
                 }
             }
-            '_' => self.add_token(TokenType::Underscore),
             '-' => {
                 if self.matching(' ') {
                     self.add_token(TokenType::Dash)
@@ -45,13 +56,6 @@ impl Lexer {
                 } else {
                     self.scan_text();
                 }
-            }
-            ' ' | '\t' => {
-                self.scan_whitespace();
-            }
-            '\n' => {
-                self.add_token(TokenType::NewLine);
-                self.line += 1;
             }
 
             _ => {
@@ -85,7 +89,7 @@ impl Lexer {
 
     fn is_content_closing(&mut self, c: char) -> bool {
         match c {
-            '\0' | '\n' | '*' | '_' | '-' | '~' => true,
+            '\0' | '\n' | '*' | '_' | '-' | '~' | '[' | ']' | '(' | ')' => true,
             '#' => self.matching(' '),
             _ => false,
         }

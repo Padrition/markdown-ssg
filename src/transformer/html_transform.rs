@@ -34,7 +34,7 @@ impl HtmlTransformer {
                 let attributes = if let Some(attributes) = attrs {
                     attributes
                         .iter()
-                        .map(|t| format!("{}={}", t.0, t.1))
+                        .map(|t| format!("{}=\"{}\"", t.0, t.1))
                         .collect::<String>()
                 } else {
                     String::new()

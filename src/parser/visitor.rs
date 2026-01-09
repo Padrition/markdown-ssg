@@ -6,6 +6,7 @@ pub trait NodeVisitor<T> {
     fn visit_emphasis(&mut self, content: &[InLineNode]) -> T;
     fn visit_strong(&mut self, content: &[InLineNode]) -> T;
     fn visit_strikethrough(&mut self, content: &[InLineNode]) -> T;
+    fn visit_link(&mut self, content: &[InLineNode], dest: &str) -> T;
     //Markdown nodes
     fn visit_heading(&mut self, level: &usize, content: &[InLineNode]) -> T;
     fn visit_paragraph(&mut self, content: &[InLineNode]) -> T;

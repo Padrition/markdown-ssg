@@ -46,4 +46,8 @@ impl NodeVisitor<String> for AstPrinter {
     fn visit_paragraph(&mut self, content: &[InLineNode]) -> String {
         format!("(paragraph {})", self.print_in_line(content))
     }
+
+    fn visit_link(&mut self, content: &[InLineNode], dest: &str) -> String {
+        self.parenthesize(&format!("a {dest}"), content)
+    }
 }

@@ -11,6 +11,10 @@ pub enum TokenType {
     DoubleStar,
     Underscore,
     Tilde,
+    OpeningBracket,
+    ClosingBracket,
+    OpeningParenthesis,
+    ClosingParenthesis,
     // content
     Content,
     Whitespace,

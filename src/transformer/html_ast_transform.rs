@@ -66,4 +66,13 @@ impl NodeVisitor<HtmlNode> for HtmlAstTransformer {
             display: Display::Block,
         }
     }
+
+    fn visit_link(&mut self, content: &[InLineNode], dest: &str) -> HtmlNode {
+        HtmlNode::Element {
+            tag: String::from("a"),
+            attrs: Some(vec![("href".to_owned(), dest.to_owned())]),
+            children: self.transform_in_line(content),
+            display: Display::Inline,
+        }
+    }
 }

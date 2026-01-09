@@ -6,6 +6,10 @@ pub enum InLineNode {
     Emphasis(Vec<InLineNode>),
     Strong(Vec<InLineNode>),
     Strikethrough(Vec<InLineNode>),
+    Link {
+        content: Vec<InLineNode>,
+        dest: String,
+    },
 }
 
 impl Node for InLineNode {
@@ -15,6 +19,7 @@ impl Node for InLineNode {
             InLineNode::Emphasis(content) => visitor.visit_emphasis(content),
             InLineNode::Strong(content) => visitor.visit_strong(content),
             InLineNode::Strikethrough(content) => visitor.visit_strikethrough(content),
+            InLineNode::Link { content, dest } => visitor.visit_link(content, dest),
         }
     }
 }
