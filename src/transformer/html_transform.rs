@@ -31,12 +31,23 @@ impl HtmlTransformer {
                     Display::Block => "\n",
                 };
 
+                let attributes = if let Some(attributes) = attrs {
+                    attributes
+                        .iter()
+                        .map(|t| format!("{}={}", t.0, t.1))
+                        .collect::<String>()
+                } else {
+                    String::new()
+                };
+
                 let inner: String = children
                     .iter()
                     .map(|c| self.inner_transform(c, level + 1))
                     .collect();
 
-                format!("{indent}<{tag}>{indent}{child_indent}{inner}{indent}</{tag}>{trailing}")
+                format!(
+                    "{indent}<{tag} {attributes}>{indent}{child_indent}{inner}{indent}</{tag}>{trailing}"
+                )
             }
             HtmlNode::Text(text) => text.clone(),
         }

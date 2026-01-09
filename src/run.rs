@@ -15,18 +15,18 @@ use crate::transformer::html_node::HtmlNode;
 use crate::transformer::html_transform::HtmlTransformer;
 use crate::transformer::html_wrapper::HtmlWrapper;
 
-pub fn run_on_file(path: &Path, output_file_name: Option<PathBuf>) {
+pub fn run_on_file<P: AsRef<Path>>(path: P, output_file_name: Option<PathBuf>) {
     let source = fs::read_to_string(&path).unwrap();
 
     let html = run(source);
 
-    let path = output_file_name.unwrap_or_else(|| {
-        return Path::new(path).with_extension("html");
+    let output_path = output_file_name.unwrap_or_else(|| {
+        return path.as_ref().with_extension("html");
     });
-    fs::write(path, html).unwrap_or_else(|err| eprintln!("Failed to write file: {err}"));
+    fs::write(output_path, html).unwrap_or_else(|err| eprintln!("Failed to write file: {err}"));
 }
 
-pub fn run_on_dir(path: &Path) {
+pub fn run_on_dir<P: AsRef<Path>>(path: P) {
     let dir = match fs::read_dir(path) {
         Ok(dir) => dir,
         Err(err) => {
@@ -45,12 +45,19 @@ pub fn run_on_dir(path: &Path) {
     let output_dir = Path::new("output");
     let _ = fs::create_dir_all(output_dir);
 
-    for f in files {
+    for f in &files {
         let output_path = output_dir
             .join(f.file_name().unwrap())
             .with_extension("html");
-        run_on_file(&f, Some(output_path));
+        run_on_file(f, Some(output_path));
     }
+
+    let index = HtmlWrapper::create_index(&files);
+    let html_trans = HtmlTransformer;
+    let transformed_index = html_trans.transform(&index);
+
+    fs::write(output_dir.join("index.html"), transformed_index)
+        .unwrap_or_else(|err| eprintln!("Failed to write file: {err}"));
 }
 
 pub fn run_repl() {

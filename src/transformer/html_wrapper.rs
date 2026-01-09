@@ -1,8 +1,46 @@
+use std::path::Path;
+
+use clap::builder::OsStr;
+
 use crate::transformer::html_node::{Display, HtmlNode};
 
 pub struct HtmlWrapper;
 
 impl HtmlWrapper {
+    pub fn create_index<P: AsRef<Path>>(paths: &Vec<P>) -> HtmlNode {
+        let links: Vec<HtmlNode> = paths
+            .into_iter()
+            .map(|p| {
+                let path = p.as_ref();
+
+                let href = path
+                    .to_owned()
+                    .with_extension("html")
+                    .file_name()
+                    .unwrap_or(&OsStr::from("index.html"))
+                    .to_string_lossy()
+                    .to_string();
+
+                let name = path
+                    .to_owned()
+                    .with_extension("")
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or(&href)
+                    .to_string();
+
+                HtmlNode::Element {
+                    tag: String::from("a"),
+                    attrs: Some(vec![("href".to_owned(), href)]),
+                    children: vec![HtmlNode::Text(name)],
+                    display: Display::Block,
+                }
+            })
+            .collect();
+
+        HtmlWrapper::wrap(links)
+    }
+
     pub fn wrap(hast: Vec<HtmlNode>) -> HtmlNode {
         HtmlNode::Element {
             tag: String::from("html"),
