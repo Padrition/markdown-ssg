@@ -15,27 +15,17 @@ impl HtmlTransformer {
                 children,
                 display,
             } => {
-                let indent = match display {
-                    Display::Inline => String::new(),
-                    Display::Block => {
-                        let newline = if level > 0 { "\n" } else { "" };
-                        format!("{}{}", newline, &"\t".repeat(level))
-                    }
-                };
-                let child_indent = match display {
-                    Display::Inline => "",
-                    Display::Block => "\t",
-                };
-                let trailing = match display {
-                    Display::Inline => "",
-                    Display::Block => "\n",
-                };
+                let child_indent = "\t".repeat(level + 1);
+                let base_indent = "\t".repeat(level);
 
                 let attributes = if let Some(attributes) = attrs {
-                    attributes
+                    let attr_str = attributes
                         .iter()
                         .map(|t| format!("{}=\"{}\"", t.0, t.1))
-                        .collect::<String>()
+                        .collect::<Vec<String>>()
+                        .join(" ");
+
+                    format!(" {}", attr_str)
                 } else {
                     String::new()
                 };
@@ -45,11 +35,21 @@ impl HtmlTransformer {
                     .map(|c| self.inner_transform(c, level + 1))
                     .collect();
 
-                format!(
-                    "{indent}<{tag} {attributes}>{indent}{child_indent}{inner}{indent}</{tag}>{trailing}"
-                )
+                return match display {
+                    Display::Inline => {
+                        format!("<{tag}{attributes}>{inner}</{tag}>")
+                    }
+                    Display::Block => {
+                        format!(
+                            "\n{base_indent}<{tag}{attributes}>\n{child_indent}{inner}\n{base_indent}</{tag}>\n"
+                        )
+                    }
+                    Display::Void => {
+                        format!("<{tag}{attributes} />\n{base_indent}")
+                    }
+                };
             }
-            HtmlNode::Text(text) => text.clone(),
+            HtmlNode::Text(text) => format!("{text}"),
         }
     }
 }

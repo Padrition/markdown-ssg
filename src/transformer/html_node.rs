@@ -1,7 +1,8 @@
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Display {
     Inline,
     Block,
+    Void,
 }
 
 #[derive(Debug, Clone)]

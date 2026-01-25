@@ -75,4 +75,13 @@ impl NodeVisitor<HtmlNode> for HtmlAstTransformer {
             display: Display::Inline,
         }
     }
+
+    fn visit_break_line(&mut self) -> HtmlNode {
+        HtmlNode::Element {
+            tag: String::from("br"),
+            attrs: None,
+            children: vec![],
+            display: Display::Void,
+        }
+    }
 }

@@ -6,6 +6,7 @@ pub enum TokenType {
     Hash,
     Dash,
     NewLine,
+    BreakLine,
     // inline
     Star,
     DoubleStar,

@@ -110,6 +110,8 @@ impl Parser {
                     content,
                     dest: dest,
                 });
+            } else if self.match_tokens(&[TokenType::BreakLine]) {
+                nodes.push(InLineNode::BreakLine);
             } else {
                 let token = if self.peek_match_tokens(&[TokenType::Whitespace]) {
                     self.consume(TokenType::Whitespace, "Expected whitespace")

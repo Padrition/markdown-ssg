@@ -2,6 +2,7 @@ use crate::parser::node::Node;
 
 #[derive(Debug, Clone)]
 pub enum InLineNode {
+    BreakLine,
     Text(String),
     Emphasis(Vec<InLineNode>),
     Strong(Vec<InLineNode>),
@@ -20,6 +21,7 @@ impl Node for InLineNode {
             InLineNode::Strong(content) => visitor.visit_strong(content),
             InLineNode::Strikethrough(content) => visitor.visit_strikethrough(content),
             InLineNode::Link { content, dest } => visitor.visit_link(content, dest),
+            InLineNode::BreakLine => visitor.visit_break_line(),
         }
     }
 }

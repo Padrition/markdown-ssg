@@ -33,7 +33,14 @@ impl Lexer {
                 self.scan_whitespace();
             }
             '\n' => {
-                self.add_token(TokenType::NewLine);
+                if self.current > 2
+                    && self.source[self.current - 3] == ' '
+                    && self.source[self.current - 2] == ' '
+                {
+                    self.add_token(TokenType::BreakLine);
+                } else {
+                    self.add_token(TokenType::NewLine);
+                }
                 self.line += 1;
             }
             '*' => {

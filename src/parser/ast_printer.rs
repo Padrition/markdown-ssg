@@ -50,4 +50,8 @@ impl NodeVisitor<String> for AstPrinter {
     fn visit_link(&mut self, content: &[InLineNode], dest: &str) -> String {
         self.parenthesize(&format!("a {dest}"), content)
     }
+
+    fn visit_break_line(&mut self) -> String {
+        self.parenthesize("br", &[])
+    }
 }
