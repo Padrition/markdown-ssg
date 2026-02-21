@@ -1,9 +1,23 @@
+use log::debug;
+
 use crate::lexer::{Token, TokenType};
 use crate::parser::{in_line_node::InLineNode, markdown_node::MarkdownNode};
 
 pub struct Parser {
     tokens: Vec<Token>,
     current: usize,
+}
+
+struct StackDelimiter {
+    position: usize,
+    length: usize,
+    can_open: bool,
+}
+
+#[derive(PartialEq)]
+enum EmphasisKind {
+    Emphasis,
+    Strong,
 }
 
 impl Parser {
@@ -19,7 +33,128 @@ impl Parser {
     }
 
     fn document(&mut self) -> Vec<MarkdownNode> {
+        self.parse_delimiters();
         self.block()
+    }
+
+    fn parse_delimiters(&mut self) {
+        let mut stack: Vec<StackDelimiter> = Vec::new();
+
+        let mut i = 0;
+        while i < self.tokens.len() {
+            match self.tokens[i].token_type {
+                TokenType::Delimiter {
+                    mut length,
+                    can_open,
+                    can_close,
+                } => {
+                    if can_open {
+                        stack.push(StackDelimiter {
+                            position: i,
+                            length,
+                            can_open,
+                        });
+                    }
+
+                    if can_close {
+                        while length != 0 {
+                            let mut j = stack.len();
+                            while j > 0 {
+                                j -= 1;
+                                // If the delimiter can both open and close, we take the one that can only open
+                                let opener_stack_position = if can_open { j - 1 } else { j };
+                                let opener = &stack[opener_stack_position];
+                                if opener.can_open {
+                                    let mut use_len = std::cmp::min(opener.length, length);
+                                    if use_len > 2 {
+                                        use_len = 2;
+                                    }
+
+                                    match use_len {
+                                        2 => self.apply_emphasis(
+                                            opener.position,
+                                            EmphasisKind::Strong,
+                                            &mut i,
+                                        ),
+                                        1 => self.apply_emphasis(
+                                            opener.position,
+                                            EmphasisKind::Emphasis,
+                                            &mut i,
+                                        ),
+                                        _ => unreachable!(),
+                                    }
+
+                                    stack[j].length -= use_len;
+                                    if stack[j].length == 0 {
+                                        stack.remove(j);
+                                    }
+
+                                    length -= use_len;
+                                }
+
+                                break;
+                            }
+                        }
+                    }
+                }
+                _ => {}
+            }
+            i += 1;
+        }
+        debug!(
+            "Pre-parser output:\n{}\n",
+            self.tokens
+                .iter()
+                .map(|t| t.to_string())
+                .collect::<String>()
+        );
+    }
+
+    fn apply_emphasis(&mut self, opener_pos: usize, kind: EmphasisKind, i: &mut usize) {
+        let (open, close) = match kind {
+            EmphasisKind::Emphasis => (TokenType::OpenEmphasis, TokenType::CloseEmphasis),
+            EmphasisKind::Strong => (TokenType::OpenStrong, TokenType::CloseStrong),
+        };
+
+        //open
+        let mut new_token = self.tokens[opener_pos].clone();
+        new_token.token_type = open;
+        new_token.lexeme = if kind == EmphasisKind::Strong {
+            String::from("**")
+        } else {
+            String::from("*")
+        };
+
+        if !matches!(
+            self.tokens[opener_pos].token_type,
+            TokenType::OpenStrong | TokenType::OpenEmphasis
+        ) {
+            self.tokens[opener_pos] = new_token;
+        } else {
+            let insert_pos = if kind == EmphasisKind::Strong {
+                opener_pos
+            } else {
+                opener_pos + 1
+            };
+            self.tokens.insert(insert_pos, new_token);
+            *i += 1;
+        }
+
+        //close
+        if matches!(self.tokens[*i].token_type, TokenType::Delimiter { .. }) {
+            self.tokens[*i].token_type = close;
+        } else {
+            new_token = self.tokens[*i].clone();
+            new_token.token_type = close;
+            new_token.lexeme = if kind == EmphasisKind::Strong {
+                String::from("**")
+            } else {
+                String::from("*")
+            };
+
+            self.tokens.insert(*i, new_token);
+            *i += 1;
+        }
     }
 
     fn block(&mut self) -> Vec<MarkdownNode> {
@@ -80,13 +215,13 @@ impl Parser {
         let mut nodes = Vec::new();
 
         while !self.is_at_end() && !self.peek_match_tokens(stop_tokens) {
-            if self.match_tokens(&[TokenType::DoubleStar]) {
-                let content = self.in_line_until(&[TokenType::DoubleStar]);
-                self.consume(TokenType::DoubleStar, "Expected a closing **");
+            if self.match_tokens(&[TokenType::OpenStrong]) {
+                let content = self.in_line_until(&[TokenType::CloseStrong]);
+                self.consume(TokenType::CloseStrong, "Expected a closing **");
                 nodes.push(InLineNode::Strong(content));
-            } else if self.match_tokens(&[TokenType::Star]) {
-                let content = self.in_line_until(&[TokenType::Star]);
-                self.consume(TokenType::Star, "Expected a closing *");
+            } else if self.match_tokens(&[TokenType::OpenEmphasis]) {
+                let content = self.in_line_until(&[TokenType::CloseEmphasis]);
+                self.consume(TokenType::CloseEmphasis, "Expected a closing *");
                 nodes.push(InLineNode::Emphasis(content));
             } else if self.match_tokens(&[TokenType::Tilde]) {
                 let content = self.in_line_until(&[TokenType::Tilde]);

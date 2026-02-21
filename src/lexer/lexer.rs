@@ -8,6 +8,14 @@ pub struct Lexer {
     line: usize,
 }
 
+fn is_whitespace(c: char) -> bool {
+    c.is_whitespace()
+}
+
+fn is_punctuation(c: char) -> bool {
+    c.is_ascii_punctuation()
+}
+
 impl Lexer {
     pub fn new(source: String) -> Self {
         let chars: Vec<char> = source.chars().collect();
@@ -24,7 +32,6 @@ impl Lexer {
         let c = self.advance();
         match c {
             '#' => self.add_token(TokenType::Hash),
-            '_' => self.add_token(TokenType::Underscore),
             '[' => self.add_token(TokenType::OpeningBracket),
             ']' => self.add_token(TokenType::ClosingBracket),
             '(' => self.add_token(TokenType::OpeningParenthesis),
@@ -43,12 +50,56 @@ impl Lexer {
                 }
                 self.line += 1;
             }
-            '*' => {
-                if self.matching('*') {
-                    self.add_token(TokenType::DoubleStar);
-                } else {
-                    self.add_token(TokenType::Star)
+            '*' | '_' => {
+                let marker = c;
+                let mut length = 1;
+
+                while self.peek() == marker {
+                    self.advance();
+                    length += 1;
                 }
+
+                let prev = if self.start == 0 {
+                    None
+                } else {
+                    Some(self.source[self.start - 1])
+                };
+
+                let next = if self.is_at_end() {
+                    None
+                } else {
+                    Some(self.peek())
+                };
+
+                let prev_is_whitespace = prev.map_or(true, is_whitespace);
+                let prev_is_punctuation = prev.map_or(false, is_punctuation);
+
+                let next_is_whitespace = next.map_or(true, is_whitespace);
+                let next_is_punctuation = next.map_or(false, is_punctuation);
+
+                let left_flanking = !next_is_whitespace
+                    && (!next_is_punctuation || prev_is_whitespace || prev_is_punctuation);
+
+                let right_flanking = !prev_is_whitespace
+                    && (!prev_is_punctuation || next_is_whitespace || next_is_punctuation);
+
+                let can_open = if marker == '*' {
+                    left_flanking
+                } else {
+                    left_flanking && !(right_flanking && !left_flanking)
+                };
+
+                let can_close = if marker == '*' {
+                    right_flanking
+                } else {
+                    right_flanking && !(left_flanking && !right_flanking)
+                };
+
+                self.add_token(TokenType::Delimiter {
+                    length,
+                    can_open,
+                    can_close,
+                });
             }
             '-' => {
                 if self.matching(' ') {
@@ -74,7 +125,7 @@ impl Lexer {
     }
 
     fn scan_whitespace(&mut self) {
-        while matches!(self.peak(), ' ' | '\t') && !self.is_at_end() {
+        while matches!(self.peek(), ' ' | '\t') && !self.is_at_end() {
             self.advance();
         }
 
@@ -83,7 +134,7 @@ impl Lexer {
 
     fn scan_text(&mut self) {
         while !self.is_at_end() {
-            let c = self.peak();
+            let c = self.peek();
 
             if self.is_content_closing(c) {
                 break;
@@ -102,7 +153,7 @@ impl Lexer {
         }
     }
 
-    fn peak(&self) -> char {
+    fn peek(&self) -> char {
         if self.is_at_end() {
             return '\0';
         }
@@ -130,7 +181,7 @@ impl Lexer {
     }
 
     fn advance(&mut self) -> char {
-        let c = self.peak();
+        let c = self.peek();
         self.current += 1;
         c
     }

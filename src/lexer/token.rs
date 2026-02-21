@@ -8,9 +8,15 @@ pub enum TokenType {
     NewLine,
     BreakLine,
     // inline
-    Star,
-    DoubleStar,
-    Underscore,
+    Delimiter {
+        length: usize,
+        can_open: bool,
+        can_close: bool,
+    },
+    OpenEmphasis,
+    CloseEmphasis,
+    OpenStrong,
+    CloseStrong,
     Tilde,
     OpeningBracket,
     ClosingBracket,
