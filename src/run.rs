@@ -7,9 +7,9 @@ use std::path::PathBuf;
 use log::debug;
 use log::error;
 
-use crate::lexer::lexer::Lexer;
+use crate::lexer::scanner::Scanner;
 use crate::parser::ast_printer::AstPrinter;
-use crate::parser::parser::Parser;
+use crate::parser::core::Parser;
 use crate::transformer::html_ast_transform::HtmlAstTransformer;
 use crate::transformer::html_node::HtmlNode;
 use crate::transformer::html_transform::HtmlTransformer;
@@ -20,9 +20,7 @@ pub fn run_on_file<P: AsRef<Path>>(path: P, output_file_name: Option<PathBuf>) {
 
     let html = run(source);
 
-    let output_path = output_file_name.unwrap_or_else(|| {
-        return path.as_ref().with_extension("html");
-    });
+    let output_path = output_file_name.unwrap_or_else(|| path.as_ref().with_extension("html"));
     fs::write(output_path, html).unwrap_or_else(|err| eprintln!("Failed to write file: {err}"));
 }
 
@@ -53,8 +51,7 @@ pub fn run_on_dir<P: AsRef<Path>>(path: P) {
     }
 
     let index = HtmlWrapper::create_index(&files);
-    let html_trans = HtmlTransformer;
-    let transformed_index = html_trans.transform(&index);
+    let transformed_index = HtmlTransformer::transform(&index);
 
     fs::write(output_dir.join("index.html"), transformed_index)
         .unwrap_or_else(|err| eprintln!("Failed to write file: {err}"));
@@ -73,11 +70,11 @@ pub fn run_repl() {
 }
 
 fn run(source: String) -> String {
-    let mut lexer = Lexer::new(source);
+    let mut lexer = Scanner::new(source);
     let tokens = lexer.scan_tokens();
 
     debug!(
-        "Lexer output:\n{}\n",
+        "Scanner output:\n{}\n",
         tokens.iter().map(|t| t.to_string()).collect::<String>()
     );
 
@@ -96,14 +93,10 @@ fn run(source: String) -> String {
 
     debug!(
         "Transform to html:\n{}\n",
-        hast.iter().map(|t| format!("{:?}", t)).collect::<String>()
+        hast.iter().map(|t| format!("{t:?}")).collect::<String>()
     );
 
     let hast = HtmlWrapper::wrap(hast);
 
-    let html_trans = HtmlTransformer;
-
-    let out = html_trans.transform(&hast);
-
-    out
+    HtmlTransformer::transform(&hast)
 }

@@ -1,6 +1,6 @@
 use crate::lexer::{Token, TokenType};
 
-pub struct Lexer {
+pub struct Scanner {
     source: Vec<char>,
     tokens: Vec<Token>,
     start: usize,
@@ -16,10 +16,10 @@ fn is_punctuation(c: char) -> bool {
     c.is_ascii_punctuation()
 }
 
-impl Lexer {
+impl Scanner {
     pub fn new(source: String) -> Self {
         let chars: Vec<char> = source.chars().collect();
-        Lexer {
+        Scanner {
             source: chars,
             tokens: vec![],
             start: 0,
@@ -71,11 +71,11 @@ impl Lexer {
                     Some(self.peek())
                 };
 
-                let prev_is_whitespace = prev.map_or(true, is_whitespace);
-                let prev_is_punctuation = prev.map_or(false, is_punctuation);
+                let prev_is_whitespace = prev.is_some_and(is_whitespace);
+                let prev_is_punctuation = prev.is_some_and(is_punctuation);
 
-                let next_is_whitespace = next.map_or(true, is_whitespace);
-                let next_is_punctuation = next.map_or(false, is_punctuation);
+                let next_is_whitespace = next.is_some_and(is_whitespace);
+                let next_is_punctuation = next.is_some_and(is_punctuation);
 
                 let left_flanking = !next_is_whitespace
                     && (!next_is_punctuation || prev_is_whitespace || prev_is_punctuation);
@@ -86,13 +86,13 @@ impl Lexer {
                 let can_open = if marker == '*' {
                     left_flanking
                 } else {
-                    left_flanking && !(right_flanking && !left_flanking)
+                    left_flanking && (!right_flanking && prev_is_punctuation)
                 };
 
                 let can_close = if marker == '*' {
                     right_flanking
                 } else {
-                    right_flanking && !(left_flanking && !right_flanking)
+                    right_flanking && (!left_flanking && next_is_punctuation)
                 };
 
                 self.add_token(TokenType::Delimiter {
@@ -168,7 +168,7 @@ impl Lexer {
         }
 
         self.tokens.push(Token::new(
-            TokenType::EOF,
+            TokenType::Eof,
             "".to_owned(),
             self.line,
             self.start,

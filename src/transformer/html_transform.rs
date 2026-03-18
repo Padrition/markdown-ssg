@@ -3,11 +3,11 @@ use crate::transformer::html_node::{Display, HtmlNode};
 pub struct HtmlTransformer;
 
 impl HtmlTransformer {
-    pub fn transform(&self, html_node: &HtmlNode) -> String {
-        self.inner_transform(html_node, 0)
+    pub fn transform(html_node: &HtmlNode) -> String {
+        HtmlTransformer::inner_transform(html_node, 0)
     }
 
-    fn inner_transform(&self, html_node: &HtmlNode, level: usize) -> String {
+    fn inner_transform(html_node: &HtmlNode, level: usize) -> String {
         match html_node {
             HtmlNode::Element {
                 tag,
@@ -25,17 +25,17 @@ impl HtmlTransformer {
                         .collect::<Vec<String>>()
                         .join(" ");
 
-                    format!(" {}", attr_str)
+                    format!(" {attr_str}")
                 } else {
                     String::new()
                 };
 
                 let inner: String = children
                     .iter()
-                    .map(|c| self.inner_transform(c, level + 1))
+                    .map(|c| HtmlTransformer::inner_transform(c, level + 1))
                     .collect();
 
-                return match display {
+                match display {
                     Display::Inline => {
                         format!("<{tag}{attributes}>{inner}</{tag}>")
                     }
@@ -47,9 +47,9 @@ impl HtmlTransformer {
                     Display::Void => {
                         format!("<{tag}{attributes} />\n{base_indent}")
                     }
-                };
+                }
             }
-            HtmlNode::Text(text) => format!("{text}"),
+            HtmlNode::Text(text) => text.to_string(),
         }
     }
 }

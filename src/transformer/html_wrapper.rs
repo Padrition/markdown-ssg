@@ -7,9 +7,9 @@ use crate::transformer::html_node::{Display, HtmlNode};
 pub struct HtmlWrapper;
 
 impl HtmlWrapper {
-    pub fn create_index<P: AsRef<Path>>(paths: &Vec<P>) -> HtmlNode {
+    pub fn create_index<P: AsRef<Path>>(paths: &[P]) -> HtmlNode {
         let links: Vec<HtmlNode> = paths
-            .into_iter()
+            .iter()
             .map(|p| {
                 let path = p.as_ref();
 

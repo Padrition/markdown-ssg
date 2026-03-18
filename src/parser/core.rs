@@ -22,10 +22,7 @@ enum EmphasisKind {
 
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
-        Parser {
-            tokens: tokens,
-            current: 0,
-        }
+        Parser { tokens, current: 0 }
     }
 
     pub fn parse(&mut self) -> Vec<MarkdownNode> {
@@ -42,62 +39,73 @@ impl Parser {
 
         let mut i = 0;
         while i < self.tokens.len() {
-            match self.tokens[i].token_type {
-                TokenType::Delimiter {
-                    mut length,
-                    can_open,
-                    can_close,
-                } => {
-                    if can_open {
-                        stack.push(StackDelimiter {
-                            position: i,
-                            length,
-                            can_open,
-                        });
-                    }
+            if let TokenType::Delimiter {
+                mut length,
+                can_open,
+                can_close,
+            } = self.tokens[i].token_type
+            {
+                if can_open {
+                    stack.push(StackDelimiter {
+                        position: i,
+                        length,
+                        can_open,
+                    });
+                }
 
-                    if can_close {
-                        while length != 0 {
-                            let mut j = stack.len();
-                            while j > 0 {
-                                j -= 1;
-                                // If the delimiter can both open and close, we take the one that can only open
-                                let opener_stack_position = if can_open { j - 1 } else { j };
-                                let opener = &stack[opener_stack_position];
-                                if opener.can_open {
-                                    let mut use_len = std::cmp::min(opener.length, length);
-                                    if use_len > 2 {
-                                        use_len = 2;
-                                    }
+                if can_close {
+                    while length != 0 {
+                        let mut j = stack.len();
+                        if j > 0 {
+                            j -= 1;
+                            // If the delimiter can both open and close, we take the one that can only open
+                            let opener_stack_position = if can_open && j != 0 { j - 1 } else { j };
+                            let opener_length = stack[opener_stack_position].length;
+                            let opener_position = stack[opener_stack_position].position;
+                            let opener_can_open = stack[opener_stack_position].can_open;
 
-                                    match use_len {
-                                        2 => self.apply_emphasis(
-                                            opener.position,
-                                            EmphasisKind::Strong,
-                                            &mut i,
-                                        ),
-                                        1 => self.apply_emphasis(
-                                            opener.position,
-                                            EmphasisKind::Emphasis,
-                                            &mut i,
-                                        ),
-                                        _ => unreachable!(),
-                                    }
+                            if opener_position == i {
+                                break;
+                            }
 
+                            if opener_can_open {
+                                let use_len = if length >= 2 && opener_length >= 2 {
+                                    2
+                                } else {
+                                    1
+                                };
+
+                                match use_len {
+                                    2 => self.apply_emphasis(
+                                        opener_position,
+                                        EmphasisKind::Strong,
+                                        &mut i,
+                                    ),
+                                    1 => self.apply_emphasis(
+                                        opener_position,
+                                        EmphasisKind::Emphasis,
+                                        &mut i,
+                                    ),
+                                    _ => unreachable!(),
+                                }
+
+                                if can_open {
                                     stack[j].length -= use_len;
                                     if stack[j].length == 0 {
                                         stack.remove(j);
                                     }
-
-                                    length -= use_len;
                                 }
 
-                                break;
+                                stack[opener_stack_position].length -= use_len;
+                                if stack[opener_stack_position].length == 0 {
+                                    stack.remove(opener_stack_position);
+                                }
+
+                                length -= use_len;
                             }
                         }
                     }
                 }
-                _ => {}
             }
             i += 1;
         }
@@ -127,16 +135,22 @@ impl Parser {
 
         if !matches!(
             self.tokens[opener_pos].token_type,
-            TokenType::OpenStrong | TokenType::OpenEmphasis
+            TokenType::OpenStrong
+                | TokenType::OpenEmphasis
+                | TokenType::CloseEmphasis
+                | TokenType::CloseStrong
         ) {
             self.tokens[opener_pos] = new_token;
         } else {
-            let insert_pos = if kind == EmphasisKind::Strong {
-                opener_pos
-            } else {
+            let new_pos = if matches!(
+                self.tokens[opener_pos].token_type,
+                TokenType::CloseEmphasis | TokenType::CloseStrong
+            ) {
                 opener_pos + 1
+            } else {
+                opener_pos
             };
-            self.tokens.insert(insert_pos, new_token);
+            self.tokens.insert(new_pos, new_token);
             *i += 1;
         }
 
@@ -188,10 +202,7 @@ impl Parser {
         //skip new line token
         self.advance();
 
-        MarkdownNode::Heading {
-            level: level,
-            content: content,
-        }
+        MarkdownNode::Heading { level, content }
     }
 
     fn paragraph(&mut self) -> MarkdownNode {
@@ -241,12 +252,13 @@ impl Parser {
                 }
                 self.consume(TokenType::ClosingParenthesis, "Expected a )");
 
-                nodes.push(InLineNode::Link {
-                    content,
-                    dest: dest,
-                });
+                nodes.push(InLineNode::Link { content, dest });
             } else if self.match_tokens(&[TokenType::BreakLine]) {
                 nodes.push(InLineNode::BreakLine);
+            } else if let TokenType::Delimiter { .. } = self.peek().token_type {
+                let token = self.advance();
+
+                self.push_text_node(&mut nodes, token.lexeme);
             } else {
                 let token = if self.peek_match_tokens(&[TokenType::Whitespace]) {
                     self.consume(TokenType::Whitespace, "Expected whitespace")
@@ -287,7 +299,7 @@ impl Parser {
         if types.iter().any(|t| self.check(*t)) {
             return true;
         }
-        return false;
+        false
     }
 
     fn match_tokens(&mut self, types: &[TokenType]) -> bool {
@@ -295,7 +307,7 @@ impl Parser {
             self.advance();
             return true;
         }
-        return false;
+        false
     }
 
     fn check(&self, token_type: TokenType) -> bool {
@@ -303,7 +315,7 @@ impl Parser {
             return self.peek().token_type == token_type;
         }
 
-        return false;
+        false
     }
 
     fn advance(&mut self) -> Token {
@@ -311,18 +323,18 @@ impl Parser {
             self.current += 1;
         }
 
-        return self.previous();
+        self.previous()
     }
 
     fn is_at_end(&self) -> bool {
-        return self.peek().token_type == TokenType::EOF;
+        self.peek().token_type == TokenType::Eof
     }
 
     fn peek(&self) -> Token {
-        return self.tokens.iter().nth(self.current).unwrap().clone();
+        self.tokens.get(self.current).unwrap().clone()
     }
 
     fn previous(&self) -> Token {
-        return self.tokens.iter().nth(&self.current - 1).unwrap().clone();
+        self.tokens.get(&self.current - 1).unwrap().clone()
     }
 }

@@ -18,13 +18,13 @@ impl AstPrinter {
     }
 
     fn parenthesize(&mut self, name: &str, children: &[InLineNode]) -> String {
-        format!("({} {})", name, self.print_in_line(children))
+        format!("({name} {})", self.print_in_line(children))
     }
 }
 
 impl NodeVisitor<String> for AstPrinter {
     fn visit_text(&mut self, text: &str) -> String {
-        format!("\"{}\"", text)
+        format!("\"{text}\"")
     }
 
     fn visit_emphasis(&mut self, content: &[InLineNode]) -> String {

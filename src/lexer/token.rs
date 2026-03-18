@@ -26,7 +26,7 @@ pub enum TokenType {
     Content,
     Whitespace,
     // meta
-    EOF,
+    Eof,
 }
 
 #[derive(Clone)]
