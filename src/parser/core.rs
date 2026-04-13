@@ -1,6 +1,7 @@
 use log::debug;
 
 use crate::lexer::{Token, TokenType};
+use crate::parser::node;
 use crate::parser::{in_line_node::InLineNode, markdown_node::MarkdownNode};
 
 pub struct Parser {
@@ -226,51 +227,76 @@ impl Parser {
         let mut nodes = Vec::new();
 
         while !self.is_at_end() && !self.peek_match_tokens(stop_tokens) {
-            if self.match_tokens(&[TokenType::OpenStrong]) {
-                let content = self.in_line_until(&[TokenType::CloseStrong]);
-                self.consume(TokenType::CloseStrong, "Expected a closing **");
-                nodes.push(InLineNode::Strong(content));
+            let node = if self.match_tokens(&[TokenType::OpenStrong]) {
+                self.parse_strong()
             } else if self.match_tokens(&[TokenType::OpenEmphasis]) {
-                let content = self.in_line_until(&[TokenType::CloseEmphasis]);
-                self.consume(TokenType::CloseEmphasis, "Expected a closing *");
-                nodes.push(InLineNode::Emphasis(content));
+                self.parse_empasis()
             } else if self.match_tokens(&[TokenType::Tilde]) {
-                let content = self.in_line_until(&[TokenType::Tilde]);
-                self.consume(TokenType::Tilde, "Expected a closing ~");
-                nodes.push(InLineNode::Strikethrough(content));
+                self.parse_strikethrough()
             } else if self.match_tokens(&[TokenType::OpeningBracket]) {
-                let content = self.in_line_until(&[TokenType::ClosingBracket]);
-                self.consume(TokenType::ClosingBracket, "Expected a ]");
-
-                self.consume(TokenType::OpeningParenthesis, "Expected a (");
-
-                let mut dest = String::new();
-                while !self.is_at_end() && !self.peek_match_tokens(&[TokenType::ClosingParenthesis])
-                {
-                    let token = self.advance();
-                    dest.push_str(&token.lexeme);
-                }
-                self.consume(TokenType::ClosingParenthesis, "Expected a )");
-
-                nodes.push(InLineNode::Link { content, dest });
+                self.parse_link()
             } else if self.match_tokens(&[TokenType::BreakLine]) {
-                nodes.push(InLineNode::BreakLine);
-            } else if let TokenType::Delimiter { .. } = self.peek().token_type {
-                let token = self.advance();
-
-                self.push_text_node(&mut nodes, token.lexeme);
+                InLineNode::BreakLine
             } else {
-                let token = if self.peek_match_tokens(&[TokenType::Whitespace]) {
-                    self.consume(TokenType::Whitespace, "Expected whitespace")
-                } else {
-                    self.consume(TokenType::Content, "Expected content")
-                };
-
-                self.push_text_node(&mut nodes, token.lexeme);
+                self.parse_text()
+            };
+            if let InLineNode::Text(lexeme) = node {
+                self.push_text_node(&mut nodes, lexeme);
+            } else {
+                nodes.push(node);
             }
         }
 
         nodes
+    }
+
+    fn parse_strong(&mut self) -> InLineNode {
+        let content = self.in_line_until(&[TokenType::CloseStrong]);
+        self.consume(TokenType::CloseStrong, "Expected a closing **");
+        InLineNode::Strong(content)
+    }
+
+    fn parse_empasis(&mut self) -> InLineNode {
+        let content = self.in_line_until(&[TokenType::CloseEmphasis]);
+        self.consume(TokenType::CloseEmphasis, "Expected a closing *");
+        InLineNode::Emphasis(content)
+    }
+
+    fn parse_strikethrough(&mut self) -> InLineNode {
+        let content = self.in_line_until(&[TokenType::Tilde]);
+        self.consume(TokenType::Tilde, "Expected a closing ~");
+        InLineNode::Strikethrough(content)
+    }
+
+    fn parse_link(&mut self) -> InLineNode {
+        let content = self.in_line_until(&[TokenType::ClosingBracket]);
+        self.consume(TokenType::ClosingBracket, "Expected a ]");
+
+        self.consume(TokenType::OpeningParenthesis, "Expected a (");
+
+        let dest = self.collect_until(&[TokenType::ClosingParenthesis]);
+        self.consume(TokenType::ClosingParenthesis, "Expected a )");
+
+        InLineNode::Link { content, dest }
+    }
+
+    fn parse_text(&mut self) -> InLineNode {
+        let token = if self.peek_match_tokens(&[TokenType::Whitespace]) {
+            self.consume(TokenType::Whitespace, "Expected whitespace")
+        } else if let TokenType::Delimiter { .. } = self.peek().token_type {
+            self.advance()
+        } else {
+            self.consume(TokenType::Content, "Expected content")
+        };
+        InLineNode::Text(token.lexeme)
+    }
+
+    fn collect_until(&mut self, stop_tokens: &[TokenType]) -> String {
+        let mut result = String::new();
+        while !self.is_at_end() && !self.peek_match_tokens(stop_tokens) {
+            result.push_str(&self.advance().lexeme);
+        }
+        result
     }
 
     fn push_text_node(&mut self, nodes: &mut Vec<InLineNode>, lexeme: String) {
