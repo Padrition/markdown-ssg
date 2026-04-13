@@ -331,10 +331,153 @@ impl Parser {
     }
 
     fn peek(&self) -> Token {
-        self.tokens.get(self.current).unwrap().clone()
+        self.tokens
+            .get(self.current)
+            .unwrap_or(&Token {
+                token_type: TokenType::Eof,
+                lexeme: "".to_string(),
+                line: self.current,
+                pos: 0,
+            })
+            .clone()
     }
 
     fn previous(&self) -> Token {
         self.tokens.get(&self.current - 1).unwrap().clone()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::vec;
+
+    use super::*;
+
+    fn make_token(token_type: TokenType, lexeme: &str) -> Token {
+        Token {
+            token_type,
+            lexeme: lexeme.to_string(),
+            line: 1,
+            pos: 0,
+        }
+    }
+
+    fn parse_inline(tokens: Vec<Token>) -> Vec<MarkdownNode> {
+        let mut parser = Parser::new(tokens);
+        parser.parse()
+    }
+
+    fn paragraph(nodes: Vec<InLineNode>) -> MarkdownNode {
+        MarkdownNode::Paragraph(nodes)
+    }
+
+    fn text(s: &str) -> InLineNode {
+        InLineNode::Text(s.to_string())
+    }
+
+    #[test]
+    fn test_strong() {
+        let tokens = vec![
+            make_token(TokenType::OpenStrong, "**"),
+            make_token(TokenType::Content, "bold"),
+            make_token(TokenType::CloseStrong, "**"),
+            make_token(TokenType::Eof, ""),
+        ];
+        let nodes = parse_inline(tokens);
+        assert_eq!(
+            nodes,
+            vec![paragraph(vec![InLineNode::Strong(vec![text("bold")])])]
+        );
+    }
+
+    #[test]
+    fn test_emphasis_with_no_eof_token() {
+        let tokens = vec![
+            make_token(TokenType::OpenEmphasis, "*"),
+            make_token(TokenType::Content, "em"),
+            make_token(TokenType::CloseEmphasis, "*"),
+        ];
+        let nodes = parse_inline(tokens);
+        assert_eq!(
+            nodes,
+            vec![paragraph(vec![InLineNode::Emphasis(vec![text("em")])])]
+        );
+    }
+
+    #[test]
+    fn test_strikethrough() {
+        let tokens = vec![
+            make_token(TokenType::Tilde, "~"),
+            make_token(TokenType::Content, "content"),
+            make_token(TokenType::Tilde, "~"),
+            make_token(TokenType::Eof, ""),
+        ];
+        let nodes = parse_inline(tokens);
+        assert_eq!(
+            nodes,
+            vec![paragraph(vec![InLineNode::Strikethrough(vec![text(
+                "content"
+            )])])]
+        );
+    }
+
+    #[test]
+    fn test_strikethrough_with() {
+        let tokens = vec![
+            make_token(TokenType::Tilde, "~"),
+            make_token(TokenType::Content, "content"),
+            make_token(TokenType::Tilde, "~"),
+            make_token(TokenType::Eof, ""),
+        ];
+        let nodes = parse_inline(tokens);
+        assert_eq!(
+            nodes,
+            vec![paragraph(vec![InLineNode::Strikethrough(vec![text(
+                "content"
+            )])])]
+        );
+    }
+
+    #[test]
+    fn test_link() {
+        let tokens = vec![
+            make_token(TokenType::OpeningBracket, "["),
+            make_token(TokenType::Content, "link content"),
+            make_token(TokenType::ClosingBracket, "]"),
+            make_token(TokenType::OpeningParenthesis, "("),
+            make_token(TokenType::ClosingBracket, "link"),
+            make_token(TokenType::ClosingParenthesis, ")"),
+            make_token(TokenType::Eof, ""),
+        ];
+        let nodes = parse_inline(tokens);
+        assert_eq!(
+            nodes,
+            vec![paragraph(vec![InLineNode::Link {
+                content: vec![text("link content")],
+                dest: "link".to_string()
+            }])]
+        );
+    }
+
+    #[test]
+    fn test_br() {
+        let tokens = vec![
+            make_token(TokenType::BreakLine, "\n"),
+            make_token(TokenType::Eof, ""),
+        ];
+        let nodes = parse_inline(tokens);
+        assert_eq!(nodes, vec![paragraph(vec![InLineNode::BreakLine])]);
+    }
+
+    #[test]
+    fn test_text() {
+        let tokens = vec![
+            make_token(TokenType::Whitespace, ""),
+            make_token(TokenType::Whitespace, ""),
+            make_token(TokenType::Content, "content"),
+            make_token(TokenType::Eof, ""),
+        ];
+        let nodes = parse_inline(tokens);
+        assert_eq!(nodes, vec![paragraph(vec![text("content")])]);
     }
 }

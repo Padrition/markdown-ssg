@@ -1,6 +1,6 @@
 use crate::parser::node::Node;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum InLineNode {
     BreakLine,
     Text(String),

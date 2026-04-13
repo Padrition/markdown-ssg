@@ -1,6 +1,6 @@
 use crate::parser::{in_line_node::InLineNode, node::Node};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum MarkdownNode {
     Heading {
         level: usize,
