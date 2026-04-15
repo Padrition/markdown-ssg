@@ -1,7 +1,6 @@
 use log::debug;
 
 use crate::lexer::{Token, TokenType};
-use crate::parser::node;
 use crate::parser::{in_line_node::InLineNode, markdown_node::MarkdownNode};
 
 pub struct Parser {
@@ -230,7 +229,7 @@ impl Parser {
             let node = if self.match_tokens(&[TokenType::OpenStrong]) {
                 self.parse_strong()
             } else if self.match_tokens(&[TokenType::OpenEmphasis]) {
-                self.parse_empasis()
+                self.parse_emphasis()
             } else if self.match_tokens(&[TokenType::Tilde]) {
                 self.parse_strikethrough()
             } else if self.match_tokens(&[TokenType::OpeningBracket]) {
@@ -256,7 +255,7 @@ impl Parser {
         InLineNode::Strong(content)
     }
 
-    fn parse_empasis(&mut self) -> InLineNode {
+    fn parse_emphasis(&mut self) -> InLineNode {
         let content = self.in_line_until(&[TokenType::CloseEmphasis]);
         self.consume(TokenType::CloseEmphasis, "Expected a closing *");
         InLineNode::Emphasis(content)
