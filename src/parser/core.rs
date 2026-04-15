@@ -374,20 +374,14 @@ impl Parser {
 
 #[cfg(test)]
 mod tests {
+    use crate::lexer::scanner::Scanner;
     use std::vec;
 
     use super::*;
 
-    fn make_token(token_type: TokenType, lexeme: &str) -> Token {
-        Token {
-            token_type,
-            lexeme: lexeme.to_string(),
-            line: 1,
-            pos: 0,
-        }
-    }
-
-    fn parse_inline(tokens: Vec<Token>) -> Vec<MarkdownNode> {
+    fn parse_from_lexemes(lexemes: &str) -> Vec<MarkdownNode> {
+        let mut scanner = Scanner::new(lexemes.to_string());
+        let tokens = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
         parser.parse()
     }
@@ -402,13 +396,7 @@ mod tests {
 
     #[test]
     fn test_strong() {
-        let tokens = vec![
-            make_token(TokenType::OpenStrong, "**"),
-            make_token(TokenType::Content, "bold"),
-            make_token(TokenType::CloseStrong, "**"),
-            make_token(TokenType::Eof, ""),
-        ];
-        let nodes = parse_inline(tokens);
+        let nodes = parse_from_lexemes("**bold**");
         assert_eq!(
             nodes,
             vec![paragraph(vec![InLineNode::Strong(vec![text("bold")])])]
@@ -416,13 +404,8 @@ mod tests {
     }
 
     #[test]
-    fn test_emphasis_with_no_eof_token() {
-        let tokens = vec![
-            make_token(TokenType::OpenEmphasis, "*"),
-            make_token(TokenType::Content, "em"),
-            make_token(TokenType::CloseEmphasis, "*"),
-        ];
-        let nodes = parse_inline(tokens);
+    fn test_emphasis() {
+        let nodes = parse_from_lexemes("*em*");
         assert_eq!(
             nodes,
             vec![paragraph(vec![InLineNode::Emphasis(vec![text("em")])])]
@@ -431,30 +414,7 @@ mod tests {
 
     #[test]
     fn test_strikethrough() {
-        let tokens = vec![
-            make_token(TokenType::Tilde, "~"),
-            make_token(TokenType::Content, "content"),
-            make_token(TokenType::Tilde, "~"),
-            make_token(TokenType::Eof, ""),
-        ];
-        let nodes = parse_inline(tokens);
-        assert_eq!(
-            nodes,
-            vec![paragraph(vec![InLineNode::Strikethrough(vec![text(
-                "content"
-            )])])]
-        );
-    }
-
-    #[test]
-    fn test_strikethrough_with() {
-        let tokens = vec![
-            make_token(TokenType::Tilde, "~"),
-            make_token(TokenType::Content, "content"),
-            make_token(TokenType::Tilde, "~"),
-            make_token(TokenType::Eof, ""),
-        ];
-        let nodes = parse_inline(tokens);
+        let nodes = parse_from_lexemes("~~content~~");
         assert_eq!(
             nodes,
             vec![paragraph(vec![InLineNode::Strikethrough(vec![text(
@@ -465,16 +425,7 @@ mod tests {
 
     #[test]
     fn test_link() {
-        let tokens = vec![
-            make_token(TokenType::OpeningBracket, "["),
-            make_token(TokenType::Content, "link content"),
-            make_token(TokenType::ClosingBracket, "]"),
-            make_token(TokenType::OpeningParenthesis, "("),
-            make_token(TokenType::ClosingBracket, "link"),
-            make_token(TokenType::ClosingParenthesis, ")"),
-            make_token(TokenType::Eof, ""),
-        ];
-        let nodes = parse_inline(tokens);
+        let nodes = parse_from_lexemes("[link content](link)");
         assert_eq!(
             nodes,
             vec![paragraph(vec![InLineNode::Link {
@@ -485,24 +436,56 @@ mod tests {
     }
 
     #[test]
-    fn test_br() {
-        let tokens = vec![
-            make_token(TokenType::BreakLine, "\n"),
-            make_token(TokenType::Eof, ""),
-        ];
-        let nodes = parse_inline(tokens);
-        assert_eq!(nodes, vec![paragraph(vec![InLineNode::BreakLine])]);
+    fn test_text() {
+        let nodes = parse_from_lexemes("  content");
+        assert_eq!(nodes, vec![paragraph(vec![text("content")])]);
     }
 
     #[test]
-    fn test_text() {
-        let tokens = vec![
-            make_token(TokenType::Whitespace, ""),
-            make_token(TokenType::Whitespace, ""),
-            make_token(TokenType::Content, "content"),
-            make_token(TokenType::Eof, ""),
-        ];
-        let nodes = parse_inline(tokens);
-        assert_eq!(nodes, vec![paragraph(vec![text("content")])]);
+    fn test_nested_tokens_strong_in_em() {
+        let nodes = parse_from_lexemes("***bi**i*");
+        assert_eq!(
+            nodes,
+            vec![paragraph(vec![InLineNode::Emphasis(vec![
+                InLineNode::Strong(vec![text("bi")]),
+                text("i")
+            ])])]
+        );
+    }
+
+    #[test]
+    fn test_nested_tokens_em_in_strong() {
+        let nodes = parse_from_lexemes("***bi*b**");
+        assert_eq!(
+            nodes,
+            vec![paragraph(vec![InLineNode::Strong(vec![
+                InLineNode::Emphasis(vec![text("bi")]),
+                text("b")
+            ])])]
+        );
+    }
+
+    #[test]
+    fn test_nested_tokens_em_along_strong() {
+        let nodes = parse_from_lexemes("*i***bi**");
+        assert_eq!(
+            nodes,
+            vec![paragraph(vec![
+                InLineNode::Emphasis(vec![text("i")]),
+                InLineNode::Strong(vec![text("bi")])
+            ])]
+        );
+    }
+
+    #[test]
+    fn test_nested_tokens_strong_along_em() {
+        let nodes = parse_from_lexemes("**b***i*");
+        assert_eq!(
+            nodes,
+            vec![paragraph(vec![
+                InLineNode::Strong(vec![text("b")]),
+                InLineNode::Emphasis(vec![text("i")])
+            ])]
+        );
     }
 }
