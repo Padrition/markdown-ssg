@@ -75,18 +75,22 @@ impl Parser {
                                     1
                                 };
 
-                                match use_len {
-                                    2 => self.apply_emphasis(
-                                        opener_position,
-                                        EmphasisKind::Strong,
-                                        &mut i,
-                                    ),
-                                    1 => self.apply_emphasis(
-                                        opener_position,
-                                        EmphasisKind::Emphasis,
-                                        &mut i,
-                                    ),
+                                let kind = match use_len {
+                                    2 => EmphasisKind::Strong,
+                                    1 => EmphasisKind::Emphasis,
                                     _ => unreachable!(),
+                                };
+                                let (opener_shift, closer_shift) =
+                                    self.apply_emphasis(opener_position, kind, &mut i);
+
+                                for entry in stack.iter_mut() {
+                                    if opener_shift > 0 && entry.position > opener_position {
+                                        entry.position += opener_shift;
+                                    }
+
+                                    if closer_shift > 0 && entry.position >= i {
+                                        entry.position += closer_shift;
+                                    }
                                 }
 
                                 if can_open {
@@ -118,7 +122,12 @@ impl Parser {
         );
     }
 
-    fn apply_emphasis(&mut self, opener_pos: usize, kind: EmphasisKind, i: &mut usize) {
+    fn apply_emphasis(
+        &mut self,
+        opener_pos: usize,
+        kind: EmphasisKind,
+        i: &mut usize,
+    ) -> (usize, usize) {
         let (open, close) = match kind {
             EmphasisKind::Emphasis => (TokenType::OpenEmphasis, TokenType::CloseEmphasis),
             EmphasisKind::Strong => (TokenType::OpenStrong, TokenType::CloseStrong),
@@ -126,6 +135,7 @@ impl Parser {
 
         //open
         let mut new_token = self.tokens[opener_pos].clone();
+        let mut opener_shift = 0;
         new_token.token_type = open;
         new_token.lexeme = if kind == EmphasisKind::Strong {
             String::from("**")
@@ -151,10 +161,13 @@ impl Parser {
                 opener_pos
             };
             self.tokens.insert(new_pos, new_token);
+            opener_shift = 1;
             *i += 1;
         }
 
         //close
+        let mut closer_shift = 0;
+
         if matches!(self.tokens[*i].token_type, TokenType::Delimiter { .. }) {
             self.tokens[*i].token_type = close;
         } else {
@@ -167,8 +180,11 @@ impl Parser {
             };
 
             self.tokens.insert(*i, new_token);
+            closer_shift = 1;
             *i += 1;
         }
+
+        (opener_shift, closer_shift)
     }
 
     fn block(&mut self) -> Vec<MarkdownNode> {
@@ -485,6 +501,19 @@ mod tests {
             vec![paragraph(vec![
                 InLineNode::Strong(vec![text("b")]),
                 InLineNode::Emphasis(vec![text("i")])
+            ])]
+        );
+    }
+
+    #[test]
+    fn test_uneven_number_of_delimiters() {
+        let nodes = parse_from_lexemes("*i***bi***");
+        assert_eq!(
+            nodes,
+            vec![paragraph(vec![
+                InLineNode::Emphasis(vec![text("i")]),
+                InLineNode::Strong(vec![text("bi")]),
+                text("*")
             ])]
         );
     }
