@@ -40,73 +40,77 @@ impl Parser {
         let mut i = 0;
         while i < self.tokens.len() {
             if let TokenType::Delimiter {
-                mut length,
+                length,
                 can_open,
                 can_close,
             } = self.tokens[i].token_type
             {
-                if can_open {
-                    stack.push(StackDelimiter {
-                        position: i,
-                        length,
-                        can_open,
-                    });
-                }
+                stack.push(StackDelimiter {
+                    position: i,
+                    length,
+                    can_open,
+                });
 
                 if can_close {
-                    while length != 0 {
-                        let mut j = stack.len();
-                        if j > 0 {
-                            j -= 1;
-                            // If the delimiter can both open and close, we take the one that can only open
-                            let opener_stack_position = if can_open && j != 0 { j - 1 } else { j };
-                            let opener_length = stack[opener_stack_position].length;
-                            let opener_position = stack[opener_stack_position].position;
-                            let opener_can_open = stack[opener_stack_position].can_open;
+                    let mut j = stack.len();
+                    j -= 1;
+                    // If the delimiter can both open and close, we take the one that can only open
+                    let opener_stack_position = if can_open && j != 0 { j - 1 } else { j };
+                    let opener_length = stack[opener_stack_position].length;
+                    let opener_position = stack[opener_stack_position].position;
+                    let opener_can_open = stack[opener_stack_position].can_open;
 
-                            if opener_position == i {
-                                break;
+                    if opener_position == i {
+                        i += 1;
+                        continue;
+                    }
+
+                    if opener_can_open {
+                        let use_len = if length >= 2 && opener_length >= 2 {
+                            2
+                        } else {
+                            1
+                        };
+
+                        let kind = match use_len {
+                            2 => EmphasisKind::Strong,
+                            1 => EmphasisKind::Emphasis,
+                            _ => unreachable!(),
+                        };
+
+                        let shift = self.apply_emphasis(opener_position, kind, &mut i);
+
+                        for delimiter in stack.iter_mut() {
+                            if delimiter.position > opener_position {
+                                delimiter.position += 1 + shift;
                             }
+                        }
 
-                            if opener_can_open {
-                                let use_len = if length >= 2 && opener_length >= 2 {
-                                    2
-                                } else {
-                                    1
-                                };
+                        stack[j].length -= use_len;
 
-                                let kind = match use_len {
-                                    2 => EmphasisKind::Strong,
-                                    1 => EmphasisKind::Emphasis,
-                                    _ => unreachable!(),
-                                };
-                                let (opener_shift, closer_shift) =
-                                    self.apply_emphasis(opener_position, kind, &mut i);
+                        self.tokens[stack[j].position].lexeme = self.tokens[stack[j].position]
+                            .lexeme
+                            .chars()
+                            .take(stack[j].length)
+                            .collect();
 
-                                for entry in stack.iter_mut() {
-                                    if opener_shift > 0 && entry.position > opener_position {
-                                        entry.position += opener_shift;
-                                    }
-
-                                    if closer_shift > 0 && entry.position >= i {
-                                        entry.position += closer_shift;
-                                    }
-                                }
-
-                                if can_open {
-                                    stack[j].length -= use_len;
-                                    if stack[j].length == 0 {
-                                        stack.remove(j);
-                                    }
-                                }
-
-                                stack[opener_stack_position].length -= use_len;
-                                if stack[opener_stack_position].length == 0 {
-                                    stack.remove(opener_stack_position);
-                                }
-
-                                length -= use_len;
+                        if stack[j].length == 0 {
+                            self.tokens.remove(stack[j].position);
+                            for delimiter in &mut stack[j + 1..] {
+                                delimiter.position -= 1;
                             }
+                            i -= 1;
+                            stack.remove(j);
+                        }
+
+                        stack[opener_stack_position].length -= use_len;
+                        if stack[opener_stack_position].length == 0 {
+                            self.tokens.remove(stack[opener_stack_position].position);
+                            for delimiter in &mut stack[opener_stack_position + 1..] {
+                                delimiter.position -= 1;
+                            }
+                            i -= 1;
+                            stack.remove(opener_stack_position);
                         }
                     }
                 }
@@ -122,20 +126,16 @@ impl Parser {
         );
     }
 
-    fn apply_emphasis(
-        &mut self,
-        opener_pos: usize,
-        kind: EmphasisKind,
-        i: &mut usize,
-    ) -> (usize, usize) {
+    fn apply_emphasis(&mut self, opener_pos: usize, kind: EmphasisKind, i: &mut usize) -> usize {
         let (open, close) = match kind {
             EmphasisKind::Emphasis => (TokenType::OpenEmphasis, TokenType::CloseEmphasis),
             EmphasisKind::Strong => (TokenType::OpenStrong, TokenType::CloseStrong),
         };
 
         //open
+        let mut shift = 0;
+
         let mut new_token = self.tokens[opener_pos].clone();
-        let mut opener_shift = 0;
         new_token.token_type = open;
         new_token.lexeme = if kind == EmphasisKind::Strong {
             String::from("**")
@@ -143,48 +143,33 @@ impl Parser {
             String::from("*")
         };
 
-        if !matches!(
-            self.tokens[opener_pos].token_type,
-            TokenType::OpenStrong
-                | TokenType::OpenEmphasis
-                | TokenType::CloseEmphasis
-                | TokenType::CloseStrong
+        let new_opener_pos = if matches!(
+            self.tokens[opener_pos + 1].token_type,
+            TokenType::CloseEmphasis | TokenType::CloseStrong
         ) {
-            self.tokens[opener_pos] = new_token;
+            shift += 1;
+            opener_pos + 2
         } else {
-            let new_pos = if matches!(
-                self.tokens[opener_pos].token_type,
-                TokenType::CloseEmphasis | TokenType::CloseStrong
-            ) {
-                opener_pos + 1
-            } else {
-                opener_pos
-            };
-            self.tokens.insert(new_pos, new_token);
-            opener_shift = 1;
-            *i += 1;
-        }
+            opener_pos + 1
+        };
+
+        shift += 1;
+        self.tokens.insert(new_opener_pos, new_token);
+        *i += 1;
 
         //close
-        let mut closer_shift = 0;
-
-        if matches!(self.tokens[*i].token_type, TokenType::Delimiter { .. }) {
-            self.tokens[*i].token_type = close;
+        new_token = self.tokens[*i].clone();
+        new_token.token_type = close;
+        new_token.lexeme = if kind == EmphasisKind::Strong {
+            String::from("**")
         } else {
-            new_token = self.tokens[*i].clone();
-            new_token.token_type = close;
-            new_token.lexeme = if kind == EmphasisKind::Strong {
-                String::from("**")
-            } else {
-                String::from("*")
-            };
+            String::from("*")
+        };
 
-            self.tokens.insert(*i, new_token);
-            closer_shift = 1;
-            *i += 1;
-        }
+        self.tokens.insert(*i, new_token);
+        *i += 1;
 
-        (opener_shift, closer_shift)
+        shift
     }
 
     fn block(&mut self) -> Vec<MarkdownNode> {
