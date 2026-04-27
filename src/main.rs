@@ -45,5 +45,5 @@ fn main() {
         }
     } else {
         run_repl();
-    };
+    }
 }

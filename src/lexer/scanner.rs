@@ -17,7 +17,7 @@ fn is_punctuation(c: char) -> bool {
 }
 
 impl Scanner {
-    pub fn new(source: String) -> Self {
+    pub fn new(source: &str) -> Self {
         let chars: Vec<char> = source.chars().collect();
         Scanner {
             source: chars,
@@ -103,14 +103,14 @@ impl Scanner {
             }
             '-' => {
                 if self.matching(' ') {
-                    self.add_token(TokenType::Dash)
+                    self.add_token(TokenType::Dash);
                 } else {
                     self.scan_text();
                 }
             }
             '~' => {
                 if self.matching('~') {
-                    self.add_token(TokenType::Tilde)
+                    self.add_token(TokenType::Tilde);
                 } else {
                     self.scan_text();
                 }
@@ -169,7 +169,7 @@ impl Scanner {
 
         self.tokens.push(Token::new(
             TokenType::Eof,
-            "".to_owned(),
+            String::new(),
             self.line,
             self.start,
         ));

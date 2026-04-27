@@ -18,7 +18,7 @@ use crate::transformer::html_wrapper::HtmlWrapper;
 pub fn run_on_file<P: AsRef<Path>>(path: P, output_file_name: Option<PathBuf>) {
     let source = fs::read_to_string(&path).unwrap();
 
-    let html = run(source);
+    let html = run(&source);
 
     let output_path = output_file_name.unwrap_or_else(|| path.as_ref().with_extension("html"));
     fs::write(output_path, html).unwrap_or_else(|err| eprintln!("Failed to write file: {err}"));
@@ -65,17 +65,19 @@ pub fn run_repl() {
 
         let mut input = String::new();
         io::stdin().read_line(&mut input).unwrap();
-        println!("Html output:\n{}", run(input));
+        println!("Html output:\n{}", run(&input));
     }
 }
 
-fn run(source: String) -> String {
+fn run(source: &str) -> String {
+    use std::fmt::Write;
+
     let mut lexer = Scanner::new(source);
     let tokens = lexer.scan_tokens();
 
     debug!(
         "Scanner output:\n{}\n",
-        tokens.iter().map(|t| t.to_string()).collect::<String>()
+        tokens.iter().map(ToString::to_string).collect::<String>()
     );
 
     let mut parser = Parser::new(tokens);
@@ -93,7 +95,10 @@ fn run(source: String) -> String {
 
     debug!(
         "Transform to html:\n{}\n",
-        hast.iter().map(|t| format!("{t:?}")).collect::<String>()
+        hast.iter().fold(String::new(), |mut output, t| {
+            let _ = write!(output, "{t:?}");
+            output
+        })
     );
 
     let hast = HtmlWrapper::wrap(hast);

@@ -49,7 +49,7 @@ impl NodeVisitor<HtmlNode> for HtmlAstTransformer {
         }
     }
 
-    fn visit_heading(&mut self, level: &usize, content: &[InLineNode]) -> HtmlNode {
+    fn visit_heading(&mut self, level: usize, content: &[InLineNode]) -> HtmlNode {
         HtmlNode::Element {
             tag: format!("h{level}"),
             attrs: None,

@@ -12,7 +12,7 @@ pub enum MarkdownNode {
 impl Node for MarkdownNode {
     fn accept<T>(&self, visitor: &mut dyn super::visitor::NodeVisitor<T>) -> T {
         match self {
-            MarkdownNode::Heading { level, content } => visitor.visit_heading(level, content),
+            MarkdownNode::Heading { level, content } => visitor.visit_heading(*level, content),
             MarkdownNode::Paragraph(content) => visitor.visit_paragraph(content),
         }
     }

@@ -29,6 +29,7 @@ pub enum TokenType {
     Eof,
 }
 
+#[allow(clippy::struct_field_names)]
 #[derive(Clone)]
 pub struct Token {
     pub token_type: TokenType,

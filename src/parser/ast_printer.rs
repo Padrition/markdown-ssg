@@ -39,7 +39,7 @@ impl NodeVisitor<String> for AstPrinter {
         self.parenthesize("strike", content)
     }
 
-    fn visit_heading(&mut self, level: &usize, content: &[InLineNode]) -> String {
+    fn visit_heading(&mut self, level: usize, content: &[InLineNode]) -> String {
         format!("(heading level={} {})", level, self.print_in_line(content))
     }
 

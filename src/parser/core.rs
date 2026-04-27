@@ -80,7 +80,7 @@ impl Parser {
 
                         let shift = self.apply_emphasis(opener_position, kind, &mut i);
 
-                        for delimiter in stack.iter_mut() {
+                        for delimiter in &mut stack {
                             if delimiter.position > opener_position {
                                 delimiter.position += 1 + shift;
                             }
@@ -121,7 +121,7 @@ impl Parser {
             "Pre-parser output:\n{}\n",
             self.tokens
                 .iter()
-                .map(|t| t.to_string())
+                .map(ToString::to_string)
                 .collect::<String>()
         );
     }
@@ -214,7 +214,7 @@ impl Parser {
             self.advance();
 
             if !self.is_at_end() && !self.peek_match_tokens(&[TokenType::NewLine]) {
-                self.push_text_node(&mut content, " ".to_owned());
+                push_text_node(&mut content, " ".to_owned());
             }
 
             nodes.append(&mut content);
@@ -241,7 +241,7 @@ impl Parser {
                 self.parse_text()
             };
             if let InLineNode::Text(lexeme) = node {
-                self.push_text_node(&mut nodes, lexeme);
+                push_text_node(&mut nodes, lexeme);
             } else {
                 nodes.push(node);
             }
@@ -299,18 +299,6 @@ impl Parser {
         result
     }
 
-    fn push_text_node(&mut self, nodes: &mut Vec<InLineNode>, lexeme: String) {
-        if lexeme.trim().is_empty() && nodes.is_empty() {
-            return;
-        }
-
-        if let Some(InLineNode::Text(last_text)) = nodes.last_mut() {
-            last_text.push_str(&lexeme);
-        } else {
-            nodes.push(InLineNode::Text(lexeme));
-        }
-    }
-
     fn consume(&mut self, token_type: TokenType, msg: &str) -> Token {
         if self.check(token_type) {
             return self.advance();
@@ -361,7 +349,7 @@ impl Parser {
             .get(self.current)
             .unwrap_or(&Token {
                 token_type: TokenType::Eof,
-                lexeme: "".to_string(),
+                lexeme: String::new(),
                 line: self.current,
                 pos: 0,
             })
@@ -373,6 +361,18 @@ impl Parser {
     }
 }
 
+fn push_text_node(nodes: &mut Vec<InLineNode>, lexeme: String) {
+    if lexeme.trim().is_empty() && nodes.is_empty() {
+        return;
+    }
+
+    if let Some(InLineNode::Text(last_text)) = nodes.last_mut() {
+        last_text.push_str(&lexeme);
+    } else {
+        nodes.push(InLineNode::Text(lexeme));
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::lexer::scanner::Scanner;
@@ -381,7 +381,7 @@ mod tests {
     use super::*;
 
     fn parse_from_lexemes(lexemes: &str) -> Vec<MarkdownNode> {
-        let mut scanner = Scanner::new(lexemes.to_string());
+        let mut scanner = Scanner::new(lexemes);
         let tokens = scanner.scan_tokens();
         let mut parser = Parser::new(tokens);
         parser.parse()
