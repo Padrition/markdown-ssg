@@ -52,10 +52,8 @@ impl Parser {
                 });
 
                 if can_close {
-                    let mut j = stack.len();
-                    j -= 1;
-                    // If the delimiter can both open and close, we take the one that can only open
-                    let opener_stack_position = if can_open && j != 0 { j - 1 } else { j };
+                    let j = stack.len() - 1;
+                    let opener_stack_position = j - 1;
                     let opener_length = stack[opener_stack_position].length;
                     let opener_position = stack[opener_stack_position].position;
                     let opener_can_open = stack[opener_stack_position].can_open;
@@ -398,8 +396,13 @@ mod tests {
     #[test]
     fn test_strong() {
         let nodes = parse_from_lexemes("**bold**");
+        let underscore_nodes = parse_from_lexemes("__bold__");
         assert_eq!(
             nodes,
+            vec![paragraph(vec![InLineNode::Strong(vec![text("bold")])])]
+        );
+        assert_eq!(
+            underscore_nodes,
             vec![paragraph(vec![InLineNode::Strong(vec![text("bold")])])]
         );
     }
@@ -407,8 +410,13 @@ mod tests {
     #[test]
     fn test_emphasis() {
         let nodes = parse_from_lexemes("*em*");
+        let underscore_nodes = parse_from_lexemes("_em_");
         assert_eq!(
             nodes,
+            vec![paragraph(vec![InLineNode::Emphasis(vec![text("em")])])]
+        );
+        assert_eq!(
+            underscore_nodes,
             vec![paragraph(vec![InLineNode::Emphasis(vec![text("em")])])]
         );
     }
@@ -445,6 +453,7 @@ mod tests {
     #[test]
     fn test_nested_tokens_strong_in_em() {
         let nodes = parse_from_lexemes("***bi**i*");
+        let underscore_nodes = parse_from_lexemes("___bi__i_");
         assert_eq!(
             nodes,
             vec![paragraph(vec![InLineNode::Emphasis(vec![
@@ -452,11 +461,13 @@ mod tests {
                 text("i")
             ])])]
         );
+        assert_eq!(underscore_nodes, vec![paragraph(vec![text("___bi__i_")])]);
     }
 
     #[test]
     fn test_nested_tokens_em_in_strong() {
         let nodes = parse_from_lexemes("***bi*b**");
+        let underscore_nodes = parse_from_lexemes("___bi_b__");
         assert_eq!(
             nodes,
             vec![paragraph(vec![InLineNode::Strong(vec![
@@ -464,11 +475,13 @@ mod tests {
                 text("b")
             ])])]
         );
+        assert_eq!(underscore_nodes, vec![paragraph(vec![text("___bi_b__")])]);
     }
 
     #[test]
     fn test_nested_tokens_em_along_strong() {
         let nodes = parse_from_lexemes("*i***bi**");
+        let underscore_nodes = parse_from_lexemes("_i___bi__");
         assert_eq!(
             nodes,
             vec![paragraph(vec![
@@ -476,11 +489,13 @@ mod tests {
                 InLineNode::Strong(vec![text("bi")])
             ])]
         );
+        assert_eq!(underscore_nodes, vec![paragraph(vec![text("_i___bi__")])]);
     }
 
     #[test]
     fn test_nested_tokens_strong_along_em() {
         let nodes = parse_from_lexemes("**b***i*");
+        let underscore_nodes = parse_from_lexemes("__b___i_");
         assert_eq!(
             nodes,
             vec![paragraph(vec![
@@ -488,11 +503,13 @@ mod tests {
                 InLineNode::Emphasis(vec![text("i")])
             ])]
         );
+        assert_eq!(underscore_nodes, vec![paragraph(vec![text("__b___i_")])]);
     }
 
     #[test]
     fn test_uneven_number_of_delimiters() {
         let nodes = parse_from_lexemes("*i***bi***");
+        let underscore_nodes = parse_from_lexemes("_i___bi___");
         assert_eq!(
             nodes,
             vec![paragraph(vec![
@@ -501,5 +518,6 @@ mod tests {
                 text("*")
             ])]
         );
+        assert_eq!(underscore_nodes, vec![paragraph(vec![text("_i___bi___")])]);
     }
 }

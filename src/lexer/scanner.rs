@@ -71,11 +71,11 @@ impl Scanner {
                     Some(self.peek())
                 };
 
-                let prev_is_whitespace = prev.is_some_and(is_whitespace);
-                let prev_is_punctuation = prev.is_some_and(is_punctuation);
+                let prev_is_whitespace = prev.map_or(true, is_whitespace);
+                let prev_is_punctuation = prev.map_or(false, is_punctuation);
 
-                let next_is_whitespace = next.is_some_and(is_whitespace);
-                let next_is_punctuation = next.is_some_and(is_punctuation);
+                let next_is_whitespace = next.map_or(true, is_whitespace);
+                let next_is_punctuation = next.map_or(false, is_punctuation);
 
                 let left_flanking = !next_is_whitespace
                     && (!next_is_punctuation || prev_is_whitespace || prev_is_punctuation);
@@ -86,13 +86,13 @@ impl Scanner {
                 let can_open = if marker == '*' {
                     left_flanking
                 } else {
-                    left_flanking && (!right_flanking && prev_is_punctuation)
+                    left_flanking && !(right_flanking && !prev_is_punctuation)
                 };
 
                 let can_close = if marker == '*' {
                     right_flanking
                 } else {
-                    right_flanking && (!left_flanking && next_is_punctuation)
+                    right_flanking && !(left_flanking && !next_is_punctuation)
                 };
 
                 self.add_token(TokenType::Delimiter {
