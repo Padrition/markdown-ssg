@@ -51,6 +51,15 @@ impl Scanner {
                 self.line += 1;
             }
             '*' | '_' => {
+                if self.current == 1 && self.is_horizontal_rule(c) {
+                    self.add_token(TokenType::HorizontalRule);
+
+                    while !self.is_at_end() && self.peek() != '\n' {
+                        self.advance();
+                    }
+
+                    return;
+                }
                 let marker = c;
                 let mut length = 1;
 
@@ -102,7 +111,12 @@ impl Scanner {
                 });
             }
             '-' => {
-                if self.matching(' ') {
+                if self.is_horizontal_rule('-') {
+                    self.add_token(TokenType::HorizontalRule);
+                    while !self.is_at_end() && self.peek() != '\n' {
+                        self.advance();
+                    }
+                } else if self.matching(' ') {
                     self.add_token(TokenType::Dash);
                 } else {
                     self.scan_text();
@@ -122,6 +136,25 @@ impl Scanner {
                 }
             }
         }
+    }
+
+    fn is_horizontal_rule(&self, marker: char) -> bool {
+        let mut count = 1;
+        let mut i = self.current;
+        while i < self.source.len() {
+            let ch = self.source[i];
+            if ch == '\n' {
+                break;
+            }
+            if ch == marker {
+                count += 1;
+            } else if ch != ' ' {
+                return false;
+            }
+            i += 1;
+        }
+
+        count >= 3
     }
 
     fn scan_whitespace(&mut self) {

@@ -7,6 +7,7 @@ pub enum TokenType {
     Dash,
     NewLine,
     BreakLine,
+    HorizontalRule,
     // inline
     Delimiter {
         length: usize,

@@ -84,4 +84,13 @@ impl NodeVisitor<HtmlNode> for HtmlAstTransformer {
             display: Display::Void,
         }
     }
+
+    fn visit_horizontal_rule(&mut self) -> HtmlNode {
+        HtmlNode::Element {
+            tag: String::from("hr"),
+            attrs: None,
+            children: vec![],
+            display: Display::Block,
+        }
+    }
 }

@@ -54,4 +54,8 @@ impl NodeVisitor<String> for AstPrinter {
     fn visit_break_line(&mut self) -> String {
         self.parenthesize("br", &[])
     }
+
+    fn visit_horizontal_rule(&mut self) -> String {
+        self.parenthesize("hr", &[])
+    }
 }

@@ -11,4 +11,5 @@ pub trait NodeVisitor<T> {
     //Markdown nodes
     fn visit_heading(&mut self, level: usize, content: &[InLineNode]) -> T;
     fn visit_paragraph(&mut self, content: &[InLineNode]) -> T;
+    fn visit_horizontal_rule(&mut self) -> T;
 }

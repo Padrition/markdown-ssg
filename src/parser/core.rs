@@ -177,6 +177,8 @@ impl Parser {
                 nodes.push(self.heading());
             } else if self.match_tokens(&[TokenType::NewLine]) {
                 self.line_breaks();
+            } else if self.match_tokens(&[TokenType::HorizontalRule]) {
+                nodes.push(MarkdownNode::HorizontalRule);
             } else {
                 nodes.push(self.paragraph());
             }
@@ -207,11 +209,16 @@ impl Parser {
     fn paragraph(&mut self) -> MarkdownNode {
         let mut nodes = Vec::new();
         while !self.is_at_end() && !self.match_tokens(&[TokenType::NewLine]) {
-            let mut content = self.in_line_until(&[TokenType::NewLine]);
-            //skip new line token
-            self.advance();
+            let mut content = self.in_line_until(&[TokenType::NewLine, TokenType::HorizontalRule]);
 
-            if !self.is_at_end() && !self.peek_match_tokens(&[TokenType::NewLine]) {
+            let is_line_break = self.peek().token_type == TokenType::NewLine
+                && self.peek_next().token_type == TokenType::NewLine;
+
+            if is_line_break {
+                self.advance();
+            }
+
+            if !self.is_at_end() && !is_line_break {
                 push_text_node(&mut content, " ".to_owned());
             }
 
@@ -345,6 +352,18 @@ impl Parser {
     fn peek(&self) -> Token {
         self.tokens
             .get(self.current)
+            .unwrap_or(&Token {
+                token_type: TokenType::Eof,
+                lexeme: String::new(),
+                line: self.current,
+                pos: 0,
+            })
+            .clone()
+    }
+
+    fn peek_next(&self) -> Token {
+        self.tokens
+            .get(self.current + 1)
             .unwrap_or(&Token {
                 token_type: TokenType::Eof,
                 lexeme: String::new(),
@@ -519,5 +538,29 @@ mod tests {
             ])]
         );
         assert_eq!(underscore_nodes, vec![paragraph(vec![text("_i___bi___")])]);
+    }
+
+    #[test]
+    fn test_horizontal_rule() {
+        let nodes = parse_from_lexemes("***");
+        let nodes_dashes = parse_from_lexemes("-----");
+        let nodes_underscores = parse_from_lexemes("__________ _____");
+        assert!(nodes == nodes_dashes && nodes == nodes_underscores);
+        assert_eq!(nodes, vec![MarkdownNode::HorizontalRule])
+    }
+
+    #[test]
+    fn test_doc() {
+        let doc = "~~Strikethrough~~
+
+---";
+        let nodes = parse_from_lexemes(doc);
+        assert_eq!(
+            nodes,
+            vec![
+                paragraph(vec![InLineNode::Strikethrough(vec![text("Strikethrough")])]),
+                MarkdownNode::HorizontalRule
+            ]
+        );
     }
 }
