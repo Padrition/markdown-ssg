@@ -36,6 +36,7 @@ impl Scanner {
             ']' => self.add_token(TokenType::ClosingBracket),
             '(' => self.add_token(TokenType::OpeningParenthesis),
             ')' => self.add_token(TokenType::ClosingParenthesis),
+            '`' => self.add_token(TokenType::Backtick),
             ' ' | '\t' => {
                 self.scan_whitespace();
             }
@@ -49,6 +50,25 @@ impl Scanner {
                     self.add_token(TokenType::NewLine);
                 }
                 self.line += 1;
+            }
+            '-' => {
+                if self.is_horizontal_rule('-') {
+                    self.add_token(TokenType::HorizontalRule);
+                    while !self.is_at_end() && self.peek() != '\n' {
+                        self.advance();
+                    }
+                } else if self.matching(' ') {
+                    self.add_token(TokenType::Dash);
+                } else {
+                    self.scan_text();
+                }
+            }
+            '~' => {
+                if self.matching('~') {
+                    self.add_token(TokenType::Tilde);
+                } else {
+                    self.scan_text();
+                }
             }
             '*' | '_' => {
                 if self.current == 1 && self.is_horizontal_rule(c) {
@@ -110,26 +130,6 @@ impl Scanner {
                     can_close,
                 });
             }
-            '-' => {
-                if self.is_horizontal_rule('-') {
-                    self.add_token(TokenType::HorizontalRule);
-                    while !self.is_at_end() && self.peek() != '\n' {
-                        self.advance();
-                    }
-                } else if self.matching(' ') {
-                    self.add_token(TokenType::Dash);
-                } else {
-                    self.scan_text();
-                }
-            }
-            '~' => {
-                if self.matching('~') {
-                    self.add_token(TokenType::Tilde);
-                } else {
-                    self.scan_text();
-                }
-            }
-
             _ => {
                 if !self.is_content_closing(c) {
                     self.scan_text();
@@ -180,7 +180,7 @@ impl Scanner {
 
     fn is_content_closing(&mut self, c: char) -> bool {
         match c {
-            '\0' | '\n' | '*' | '_' | '-' | '~' | '[' | ']' | '(' | ')' => true,
+            '\0' | '\n' | '*' | '_' | '-' | '~' | '[' | ']' | '(' | ')' | '`' => true,
             '#' => self.matching(' '),
             _ => false,
         }

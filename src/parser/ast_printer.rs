@@ -58,4 +58,12 @@ impl NodeVisitor<String> for AstPrinter {
     fn visit_horizontal_rule(&mut self) -> String {
         self.parenthesize("hr", &[])
     }
+
+    fn visit_in_line_code(&mut self, content: &[InLineNode]) -> String {
+        self.parenthesize("code", content)
+    }
+
+    fn visit_markdown_code(&mut self, content: &[InLineNode]) -> String {
+        self.parenthesize("code block", content)
+    }
 }

@@ -93,4 +93,29 @@ impl NodeVisitor<HtmlNode> for HtmlAstTransformer {
             display: Display::Block,
         }
     }
+
+    fn visit_in_line_code(&mut self, content: &[InLineNode]) -> HtmlNode {
+        HtmlNode::Element {
+            tag: String::from("code"),
+            attrs: None,
+            children: self.transform_in_line(content),
+            display: Display::Inline,
+        }
+    }
+
+    fn visit_markdown_code(&mut self, content: &[InLineNode]) -> HtmlNode {
+        let inner = HtmlNode::Element {
+            tag: String::from("code"),
+            attrs: None,
+            children: self.transform_in_line(content),
+            display: Display::Inline,
+        };
+
+        HtmlNode::Element {
+            tag: String::from("pre"),
+            attrs: None,
+            children: vec![inner],
+            display: Display::Block,
+        }
+    }
 }

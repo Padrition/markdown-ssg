@@ -8,6 +8,10 @@ pub enum MarkdownNode {
     },
     Paragraph(Vec<InLineNode>),
     HorizontalRule,
+    Code {
+        language: String,
+        content: Vec<InLineNode>,
+    },
 }
 
 impl Node for MarkdownNode {
@@ -16,6 +20,7 @@ impl Node for MarkdownNode {
             MarkdownNode::Heading { level, content } => visitor.visit_heading(*level, content),
             MarkdownNode::Paragraph(content) => visitor.visit_paragraph(content),
             MarkdownNode::HorizontalRule => visitor.visit_horizontal_rule(),
+            MarkdownNode::Code { language, content } => visitor.visit_markdown_code(content),
         }
     }
 }

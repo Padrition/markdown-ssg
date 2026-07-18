@@ -8,8 +8,10 @@ pub trait NodeVisitor<T> {
     fn visit_strikethrough(&mut self, content: &[InLineNode]) -> T;
     fn visit_link(&mut self, content: &[InLineNode], dest: &str) -> T;
     fn visit_break_line(&mut self) -> T;
+    fn visit_in_line_code(&mut self, content: &[InLineNode]) -> T;
     //Markdown nodes
     fn visit_heading(&mut self, level: usize, content: &[InLineNode]) -> T;
     fn visit_paragraph(&mut self, content: &[InLineNode]) -> T;
     fn visit_horizontal_rule(&mut self) -> T;
+    fn visit_markdown_code(&mut self, content: &[InLineNode]) -> T;
 }

@@ -9,6 +9,7 @@ pub enum TokenType {
     BreakLine,
     HorizontalRule,
     // inline
+    Backtick,
     Delimiter {
         length: usize,
         can_open: bool,

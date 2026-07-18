@@ -1,5 +1,6 @@
 use log::debug;
 
+use crate::lexer::TokenType::NewLine;
 use crate::lexer::{Token, TokenType};
 use crate::parser::{in_line_node::InLineNode, markdown_node::MarkdownNode};
 
@@ -179,6 +180,8 @@ impl Parser {
                 self.line_breaks();
             } else if self.match_tokens(&[TokenType::HorizontalRule]) {
                 nodes.push(MarkdownNode::HorizontalRule);
+            } else if self.count_consecutive_tokens(self.current, TokenType::Backtick) >= 3 {
+                nodes.push(self.parse_code_block())
             } else {
                 nodes.push(self.paragraph());
             }
@@ -228,6 +231,68 @@ impl Parser {
         MarkdownNode::Paragraph(nodes)
     }
 
+    fn parse_code_block(&mut self) -> MarkdownNode {
+        let opening_count = self.count_consecutive_tokens(self.current, TokenType::Backtick);
+
+        self.current += opening_count;
+
+        let mut language = String::new();
+        while !self.is_at_end() && self.tokens[self.current].token_type != TokenType::NewLine {
+            language.push_str(&self.tokens[self.current].lexeme);
+            self.current += 1;
+        }
+        if !self.is_at_end() {
+            self.current += 1;
+        }
+
+        let mut found_match = false;
+        let mut match_idx = self.current;
+
+        let start_token_idx = self.current;
+        let mut closing_token_ids = 0;
+
+        while match_idx < self.tokens.len() {
+            if self.tokens[match_idx].token_type == TokenType::Backtick
+                && self.tokens[match_idx - 1].token_type == TokenType::NewLine
+            {
+                let mut second_count = 0;
+                let mut inner_match_idx = match_idx;
+
+                while inner_match_idx < self.tokens.len()
+                    && self.tokens[inner_match_idx].token_type == TokenType::Backtick
+                {
+                    second_count += 1;
+                    inner_match_idx += 1;
+                }
+
+                if second_count == opening_count {
+                    found_match = true;
+                    self.current = inner_match_idx;
+                    closing_token_ids = match_idx - 1;
+                    break;
+                } else {
+                    match_idx = inner_match_idx;
+                }
+            } else {
+                match_idx += 1;
+            }
+        }
+
+        if found_match {
+            let content = self.tokens[start_token_idx..closing_token_ids]
+                .iter()
+                .map(|t| t.lexeme.as_str())
+                .collect::<String>();
+            MarkdownNode::Code {
+                language: language,
+                content: vec![InLineNode::Text(content)],
+            }
+        } else {
+            let fallback_text = "`".repeat(opening_count);
+            MarkdownNode::Paragraph(vec![InLineNode::Text(fallback_text)])
+        }
+    }
+
     fn in_line_until(&mut self, stop_tokens: &[TokenType]) -> Vec<InLineNode> {
         let mut nodes = Vec::new();
 
@@ -240,6 +305,8 @@ impl Parser {
                 self.parse_strikethrough()
             } else if self.match_tokens(&[TokenType::OpeningBracket]) {
                 self.parse_link()
+            } else if self.match_tokens(&[TokenType::Backtick]) {
+                self.parse_backtick()
             } else if self.match_tokens(&[TokenType::BreakLine]) {
                 InLineNode::BreakLine
             } else {
@@ -285,6 +352,59 @@ impl Parser {
         InLineNode::Link { content, dest }
     }
 
+    fn parse_backtick(&mut self) -> InLineNode {
+        let count = 1 + self.count_consecutive_tokens(self.current, TokenType::Backtick);
+
+        let mut found_match = false;
+        let mut match_idx = self.current;
+
+        let start_token_idx = self.current;
+        let mut closing_token_ids = 0;
+
+        while match_idx < self.tokens.len() {
+            if self.tokens[match_idx].token_type == TokenType::Backtick {
+                let mut second_count = 0;
+                let mut inner_match_idx = match_idx;
+
+                while inner_match_idx < self.tokens.len()
+                    && self.tokens[inner_match_idx].token_type == TokenType::Backtick
+                {
+                    second_count += 1;
+                    inner_match_idx += 1;
+                }
+
+                if second_count == count {
+                    found_match = true;
+                    self.current = inner_match_idx;
+                    closing_token_ids = match_idx;
+                    break;
+                } else {
+                    match_idx = inner_match_idx;
+                }
+            } else {
+                match_idx += 1;
+            }
+        }
+
+        if found_match {
+            let content = self.tokens[start_token_idx..closing_token_ids]
+                .iter()
+                .map(|t| t.lexeme.as_str())
+                .collect::<String>();
+
+            let trimmed_content =
+                if content.starts_with(' ') && content.ends_with(' ') && content.trim() != "" {
+                    content[1..content.len() - 1].to_string()
+                } else {
+                    content
+                };
+            InLineNode::Code(vec![InLineNode::Text(trimmed_content)])
+        } else {
+            let fallback_text = "`".repeat(count);
+            InLineNode::Text(fallback_text)
+        }
+    }
+
     fn parse_text(&mut self) -> InLineNode {
         let token = if self.peek_match_tokens(&[TokenType::Whitespace]) {
             self.consume(TokenType::Whitespace, "Expected whitespace")
@@ -294,6 +414,16 @@ impl Parser {
             self.consume(TokenType::Content, "Expected content")
         };
         InLineNode::Text(token.lexeme)
+    }
+
+    fn count_consecutive_tokens(&self, mut start_idx: usize, token_type: TokenType) -> usize {
+        let mut count = 0;
+        while start_idx < self.tokens.len() && self.tokens[start_idx].token_type == token_type {
+            count += 1;
+            start_idx += 1;
+        }
+
+        count
     }
 
     fn collect_until(&mut self, stop_tokens: &[TokenType]) -> String {
@@ -561,6 +691,33 @@ mod tests {
                 paragraph(vec![InLineNode::Strikethrough(vec![text("Strikethrough")])]),
                 MarkdownNode::HorizontalRule
             ]
+        );
+    }
+
+    #[test]
+    fn test_backtick() {
+        let nodes = parse_from_lexemes("`abc`");
+        assert_eq!(
+            nodes,
+            vec![paragraph(vec![InLineNode::Code(vec!(text("abc")))])]
+        );
+    }
+
+    #[test]
+    fn test_code_block() {
+        let lexemes = "```
+asdf
+    ff
+```";
+        let expected_output = "asdf
+ ff";
+        let nodes = parse_from_lexemes(lexemes);
+        assert_eq!(
+            nodes,
+            vec![MarkdownNode::Code {
+                language: "".to_string(),
+                content: vec![text(expected_output)]
+            }]
         );
     }
 }
