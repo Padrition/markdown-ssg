@@ -37,9 +37,7 @@ impl Scanner {
             '(' => self.add_token(TokenType::OpeningParenthesis),
             ')' => self.add_token(TokenType::ClosingParenthesis),
             '`' => self.add_token(TokenType::Backtick),
-            ' ' | '\t' => {
-                self.scan_whitespace();
-            }
+            ' ' | '\t' => self.add_token(TokenType::Whitespace),
             '\n' => {
                 if self.current > 2
                     && self.source[self.current - 3] == ' '
@@ -155,14 +153,6 @@ impl Scanner {
         }
 
         count >= 3
-    }
-
-    fn scan_whitespace(&mut self) {
-        while matches!(self.peek(), ' ' | '\t') && !self.is_at_end() {
-            self.advance();
-        }
-
-        self.add_token(TokenType::Whitespace);
     }
 
     fn scan_text(&mut self) {

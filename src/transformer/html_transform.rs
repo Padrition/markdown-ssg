@@ -15,7 +15,6 @@ impl HtmlTransformer {
                 children,
                 display,
             } => {
-                let child_indent = "\t".repeat(level + 1);
                 let base_indent = "\t".repeat(level);
 
                 let attributes = if let Some(attributes) = attrs {
@@ -30,22 +29,32 @@ impl HtmlTransformer {
                     String::new()
                 };
 
+                let next_level = match tag.as_str() {
+                    "p" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" => level,
+                    _ => level + 1,
+                };
+
                 let inner: String = children
                     .iter()
-                    .map(|c| HtmlTransformer::inner_transform(c, level + 1))
+                    .map(|c| HtmlTransformer::inner_transform(c, next_level))
                     .collect();
 
                 match display {
                     Display::Inline => {
                         format!("<{tag}{attributes}>{inner}</{tag}>")
                     }
-                    Display::Block => {
-                        format!(
-                            "\n{base_indent}<{tag}{attributes}>\n{child_indent}{inner}\n{base_indent}</{tag}>\n"
-                        )
-                    }
+                    Display::Block => match tag.as_str() {
+                        "p" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "pre" | "code" => {
+                            format!("{base_indent}<{tag}{attributes}>{inner}</{tag}>\n")
+                        }
+                        _ => {
+                            format!(
+                                "{base_indent}<{tag}{attributes}>\n{inner}{base_indent}</{tag}>\n"
+                            )
+                        }
+                    },
                     Display::Void => {
-                        format!("<{tag}{attributes} />\n{base_indent}")
+                        format!("<{tag}{attributes} />")
                     }
                 }
             }

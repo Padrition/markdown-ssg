@@ -1,6 +1,5 @@
 use log::debug;
 
-use crate::lexer::TokenType::NewLine;
 use crate::lexer::{Token, TokenType};
 use crate::parser::{in_line_node::InLineNode, markdown_node::MarkdownNode};
 
@@ -710,7 +709,7 @@ asdf
     ff
 ```";
         let expected_output = "asdf
- ff";
+    ff";
         let nodes = parse_from_lexemes(lexemes);
         assert_eq!(
             nodes,
