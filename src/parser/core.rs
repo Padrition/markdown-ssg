@@ -719,4 +719,32 @@ asdf
             }]
         );
     }
+
+    #[test]
+    fn test_code_block_with_lang() {
+        let lexemes = "```rust
+assert_eq!(
+            nodes,
+            vec![MarkdownNode::Code {
+                language: \"\".to_string(),
+                content: vec![text(expected_output)]
+            }]
+        );
+```";
+        let expected_output = "assert_eq!(
+            nodes,
+            vec![MarkdownNode::Code {
+                language: \"\".to_string(),
+                content: vec![text(expected_output)]
+            }]
+        );";
+        let nodes = parse_from_lexemes(lexemes);
+        assert_eq!(
+            nodes,
+            vec![MarkdownNode::Code {
+                language: "rust".to_string(),
+                content: vec![text(expected_output)]
+            }]
+        );
+    }
 }

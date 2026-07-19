@@ -63,7 +63,7 @@ impl NodeVisitor<String> for AstPrinter {
         self.parenthesize("code", content)
     }
 
-    fn visit_markdown_code(&mut self, content: &[InLineNode]) -> String {
-        self.parenthesize("code block", content)
+    fn visit_markdown_code(&mut self, language: &str, content: &[InLineNode]) -> String {
+        self.parenthesize(&format!("{language}code block"), content)
     }
 }

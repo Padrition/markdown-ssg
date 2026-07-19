@@ -103,10 +103,10 @@ impl NodeVisitor<HtmlNode> for HtmlAstTransformer {
         }
     }
 
-    fn visit_markdown_code(&mut self, content: &[InLineNode]) -> HtmlNode {
+    fn visit_markdown_code(&mut self, language: &str, content: &[InLineNode]) -> HtmlNode {
         let inner = HtmlNode::Element {
             tag: String::from("code"),
-            attrs: None,
+            attrs: Some(vec![("class".to_owned(), format!("language-{language}"))]),
             children: self.transform_in_line(content),
             display: Display::Inline,
         };
