@@ -98,11 +98,11 @@ impl Scanner {
                     Some(self.peek())
                 };
 
-                let prev_is_whitespace = prev.map_or(true, is_whitespace);
-                let prev_is_punctuation = prev.map_or(false, is_punctuation);
+                let prev_is_whitespace = prev.is_none_or(is_whitespace);
+                let prev_is_punctuation = prev.is_some_and(is_punctuation);
 
-                let next_is_whitespace = next.map_or(true, is_whitespace);
-                let next_is_punctuation = next.map_or(false, is_punctuation);
+                let next_is_whitespace = next.is_none_or(is_whitespace);
+                let next_is_punctuation = next.is_some_and(is_punctuation);
 
                 let left_flanking = !next_is_whitespace
                     && (!next_is_punctuation || prev_is_whitespace || prev_is_punctuation);

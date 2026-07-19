@@ -283,7 +283,7 @@ impl Parser {
                 .map(|t| t.lexeme.as_str())
                 .collect::<String>();
             MarkdownNode::Code {
-                language: language,
+                language,
                 content: vec![InLineNode::Text(content)],
             }
         } else {
