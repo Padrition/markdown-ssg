@@ -181,6 +181,8 @@ impl Parser {
                 nodes.push(MarkdownNode::HorizontalRule);
             } else if self.count_consecutive_tokens(self.current, TokenType::Backtick) >= 3 {
                 nodes.push(self.parse_code_block())
+            } else if self.peek_match_tokens(&[TokenType::UnorderedList]) {
+                nodes.push(self.parse_unordered_list(0));
             } else {
                 nodes.push(self.paragraph());
             }
@@ -193,6 +195,15 @@ impl Parser {
         while !self.is_at_end() && self.match_tokens(&[TokenType::NewLine]) {
             // consume new lines
         }
+    }
+
+    fn is_block_start(&mut self) -> bool {
+        self.peek_match_tokens(&[
+            TokenType::Hash,
+            TokenType::HorizontalRule,
+            TokenType::UnorderedList,
+            TokenType::NewLine,
+        ]) || self.count_consecutive_tokens(self.current, TokenType::Backtick) >= 3
     }
 
     fn heading(&mut self) -> MarkdownNode {
@@ -210,8 +221,12 @@ impl Parser {
 
     fn paragraph(&mut self) -> MarkdownNode {
         let mut nodes = Vec::new();
-        while !self.is_at_end() && !self.match_tokens(&[TokenType::NewLine]) {
-            let mut content = self.in_line_until(&[TokenType::NewLine, TokenType::HorizontalRule]);
+        while !self.is_at_end() && !self.is_block_start() {
+            let mut content = self.in_line_until(&[
+                TokenType::NewLine,
+                TokenType::HorizontalRule,
+                TokenType::UnorderedList,
+            ]);
 
             let is_line_break = self.peek().token_type == TokenType::NewLine
                 && self.peek_next().token_type == TokenType::NewLine;
@@ -290,6 +305,50 @@ impl Parser {
             let fallback_text = "`".repeat(opening_count);
             MarkdownNode::Paragraph(vec![InLineNode::Text(fallback_text)])
         }
+    }
+
+    fn parse_unordered_list(&mut self, depth: usize) -> MarkdownNode {
+        let mut list_el = Vec::new();
+
+        //let nested_indent = depth + 4;
+
+        let mut indent = self.count_consecutive_tokens(self.current, TokenType::Whitespace);
+        self.current = self.current + indent;
+
+        let mut break_flag = false;
+        while self.match_tokens(&[TokenType::UnorderedList]) {
+            let content = self.in_line_until(&[TokenType::NewLine]);
+            self.advance();
+
+            let mut nested_list: Option<Box<MarkdownNode>> = None;
+            if self.peek_match_tokens(&[TokenType::Whitespace]) {
+                indent = self.count_consecutive_tokens(self.current, TokenType::Whitespace);
+
+                if indent > depth {
+                    nested_list = Some(Box::new(self.parse_unordered_list(indent)));
+                }
+
+                indent = self.count_consecutive_tokens(self.current, TokenType::Whitespace);
+                if indent == depth {
+                    self.current = self.current + indent;
+                }
+            } else {
+                indent = self.count_consecutive_tokens(self.current, TokenType::Whitespace);
+                if indent < depth {
+                    break_flag = true;
+                }
+            }
+
+            list_el.push(InLineNode::UnorderedListElement {
+                content,
+                nested_list,
+            });
+
+            if break_flag {
+                break;
+            }
+        }
+        MarkdownNode::UnorderedList(list_el)
     }
 
     fn in_line_until(&mut self, stop_tokens: &[TokenType]) -> Vec<InLineNode> {
@@ -746,5 +805,151 @@ assert_eq!(
                 content: vec![text(expected_output)]
             }]
         );
+    }
+
+    #[test]
+    fn test_unordered_list() {
+        let lexemes = "- one
+- two
+- three";
+
+        let nodes = parse_from_lexemes(lexemes);
+        assert_eq!(
+            nodes,
+            vec![MarkdownNode::UnorderedList(vec![
+                InLineNode::UnorderedListElement {
+                    content: vec![text("one")],
+                    nested_list: None
+                },
+                InLineNode::UnorderedListElement {
+                    content: vec![text("two")],
+                    nested_list: None
+                },
+                InLineNode::UnorderedListElement {
+                    content: vec![text("three")],
+                    nested_list: None
+                }
+            ])]
+        )
+    }
+
+    #[test]
+    fn test_nested_unordered_list() {
+        let lexemes = "- one
+    - one.two
+    - one.three";
+
+        let nodes = parse_from_lexemes(lexemes);
+        assert_eq!(
+            nodes,
+            vec![MarkdownNode::UnorderedList(vec![
+                InLineNode::UnorderedListElement {
+                    content: vec![text("one")],
+                    nested_list: Some(Box::new(MarkdownNode::UnorderedList(vec![
+                        InLineNode::UnorderedListElement {
+                            content: vec![text("one.two")],
+                            nested_list: None
+                        },
+                        InLineNode::UnorderedListElement {
+                            content: vec![text("one.three")],
+                            nested_list: None
+                        },
+                    ])))
+                }
+            ])]
+        )
+    }
+
+    #[test]
+    fn test_nested_unordered_list_diff_indent() {
+        let lexemes = "- one
+        - two
+        - three";
+
+        let nodes = parse_from_lexemes(lexemes);
+        assert_eq!(
+            nodes,
+            vec![MarkdownNode::UnorderedList(vec![
+                InLineNode::UnorderedListElement {
+                    content: vec![text("one")],
+                    nested_list: Some(Box::new(MarkdownNode::UnorderedList(vec![
+                        InLineNode::UnorderedListElement {
+                            content: vec![text("two")],
+                            nested_list: None
+                        },
+                        InLineNode::UnorderedListElement {
+                            content: vec![text("three")],
+                            nested_list: None
+                        },
+                    ])))
+                }
+            ])]
+        )
+    }
+
+    #[test]
+    fn test_deeply_nested_unordered_list() {
+        let lexemes = "- two
+    - two.two
+        - two.three";
+
+        let nodes = parse_from_lexemes(lexemes);
+        assert_eq!(
+            nodes,
+            vec![MarkdownNode::UnorderedList(vec![
+                InLineNode::UnorderedListElement {
+                    content: vec![text("two")],
+                    nested_list: Some(Box::new(MarkdownNode::UnorderedList(vec![
+                        InLineNode::UnorderedListElement {
+                            content: vec![text("two.two")],
+                            nested_list: Some(Box::new(MarkdownNode::UnorderedList(vec![
+                                InLineNode::UnorderedListElement {
+                                    content: vec![text("two.three")],
+                                    nested_list: None
+                                },
+                            ])))
+                        }
+                    ])))
+                }
+            ])]
+        )
+    }
+
+    #[test]
+    fn test_mixed_nested_unordered_list() {
+        let lexemes = "- two
+    - two.two
+        - two.three
+    - two.two.one
+- three";
+
+        let nodes = parse_from_lexemes(lexemes);
+        assert_eq!(
+            nodes,
+            vec![MarkdownNode::UnorderedList(vec![
+                InLineNode::UnorderedListElement {
+                    content: vec![text("two")],
+                    nested_list: Some(Box::new(MarkdownNode::UnorderedList(vec![
+                        InLineNode::UnorderedListElement {
+                            content: vec![text("two.two")],
+                            nested_list: Some(Box::new(MarkdownNode::UnorderedList(vec![
+                                InLineNode::UnorderedListElement {
+                                    content: vec![text("two.three")],
+                                    nested_list: None
+                                },
+                            ])))
+                        },
+                        InLineNode::UnorderedListElement {
+                            content: vec![text("two.two.one")],
+                            nested_list: None
+                        },
+                    ])))
+                },
+                InLineNode::UnorderedListElement {
+                    content: vec![text("three")],
+                    nested_list: None
+                },
+            ])]
+        )
     }
 }

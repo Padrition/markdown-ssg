@@ -12,6 +12,7 @@ pub enum MarkdownNode {
         language: String,
         content: Vec<InLineNode>,
     },
+    UnorderedList(Vec<InLineNode>),
 }
 
 impl Node for MarkdownNode {
@@ -23,6 +24,7 @@ impl Node for MarkdownNode {
             MarkdownNode::Code { language, content } => {
                 visitor.visit_markdown_code(language, content)
             }
+            MarkdownNode::UnorderedList(content) => visitor.visit_unordered_list(content),
         }
     }
 }

@@ -49,14 +49,29 @@ impl Scanner {
                 }
                 self.line += 1;
             }
+            '+' => {
+                if self.matching(' ')
+                    || self.matching('\t')
+                    || self.matching('\n')
+                    || self.is_at_end()
+                {
+                    self.add_token(TokenType::UnorderedList);
+                } else {
+                    self.scan_text();
+                }
+            }
             '-' => {
-                if self.is_horizontal_rule('-') {
+                if self.is_horizontal_rule(c) {
                     self.add_token(TokenType::HorizontalRule);
                     while !self.is_at_end() && self.peek() != '\n' {
                         self.advance();
                     }
-                } else if self.matching(' ') {
-                    self.add_token(TokenType::Dash);
+                } else if self.matching(' ')
+                    || self.matching('\t')
+                    || self.matching('\n')
+                    || self.is_at_end()
+                {
+                    self.add_token(TokenType::UnorderedList);
                 } else {
                     self.scan_text();
                 }
@@ -78,55 +93,8 @@ impl Scanner {
 
                     return;
                 }
-                let marker = c;
-                let mut length = 1;
 
-                while self.peek() == marker {
-                    self.advance();
-                    length += 1;
-                }
-
-                let prev = if self.start == 0 {
-                    None
-                } else {
-                    Some(self.source[self.start - 1])
-                };
-
-                let next = if self.is_at_end() {
-                    None
-                } else {
-                    Some(self.peek())
-                };
-
-                let prev_is_whitespace = prev.is_none_or(is_whitespace);
-                let prev_is_punctuation = prev.is_some_and(is_punctuation);
-
-                let next_is_whitespace = next.is_none_or(is_whitespace);
-                let next_is_punctuation = next.is_some_and(is_punctuation);
-
-                let left_flanking = !next_is_whitespace
-                    && (!next_is_punctuation || prev_is_whitespace || prev_is_punctuation);
-
-                let right_flanking = !prev_is_whitespace
-                    && (!prev_is_punctuation || next_is_whitespace || next_is_punctuation);
-
-                let can_open = if marker == '*' {
-                    left_flanking
-                } else {
-                    left_flanking && !(right_flanking && !prev_is_punctuation)
-                };
-
-                let can_close = if marker == '*' {
-                    right_flanking
-                } else {
-                    right_flanking && !(left_flanking && !next_is_punctuation)
-                };
-
-                self.add_token(TokenType::Delimiter {
-                    length,
-                    can_open,
-                    can_close,
-                });
+                self.scan_delimiter(c);
             }
             _ => {
                 if !self.is_content_closing(c) {
@@ -153,6 +121,57 @@ impl Scanner {
         }
 
         count >= 3
+    }
+
+    fn scan_delimiter(&mut self, marker: char) {
+        let mut length = 1;
+
+        while self.peek() == marker {
+            self.advance();
+            length += 1;
+        }
+
+        let prev = if self.start == 0 {
+            None
+        } else {
+            Some(self.source[self.start - 1])
+        };
+
+        let next = if self.is_at_end() {
+            None
+        } else {
+            Some(self.peek())
+        };
+
+        let prev_is_whitespace = prev.is_none_or(is_whitespace);
+        let prev_is_punctuation = prev.is_some_and(is_punctuation);
+
+        let next_is_whitespace = next.is_none_or(is_whitespace);
+        let next_is_punctuation = next.is_some_and(is_punctuation);
+
+        let left_flanking = !next_is_whitespace
+            && (!next_is_punctuation || prev_is_whitespace || prev_is_punctuation);
+
+        let right_flanking = !prev_is_whitespace
+            && (!prev_is_punctuation || next_is_whitespace || next_is_punctuation);
+
+        let can_open = if marker == '*' {
+            left_flanking
+        } else {
+            left_flanking && !(right_flanking && !prev_is_punctuation)
+        };
+
+        let can_close = if marker == '*' {
+            right_flanking
+        } else {
+            right_flanking && !(left_flanking && !next_is_punctuation)
+        };
+
+        self.add_token(TokenType::Delimiter {
+            length,
+            can_open,
+            can_close,
+        });
     }
 
     fn scan_text(&mut self) {

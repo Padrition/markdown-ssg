@@ -118,4 +118,36 @@ impl NodeVisitor<HtmlNode> for HtmlAstTransformer {
             display: Display::Block,
         }
     }
+
+    fn visit_unordered_list(&mut self, content: &[InLineNode]) -> HtmlNode {
+        HtmlNode::Element {
+            tag: String::from("ul"),
+            attrs: None,
+            children: self.transform_in_line(content),
+            display: Display::Block,
+        }
+    }
+
+    fn visit_unordered_list_element(
+        &mut self,
+        content: &[InLineNode],
+        nested_list: &Option<Box<MarkdownNode>>,
+    ) -> HtmlNode {
+        let nested_html = nested_list.as_deref().map(|x| match x {
+            MarkdownNode::UnorderedList(in_line_nodes) => self.visit_unordered_list(in_line_nodes),
+            _ => panic!("Expected unordered list"),
+        });
+
+        let mut children = self.transform_in_line(content);
+        if let Some(nested_nodes) = nested_html {
+            children.push(nested_nodes);
+        }
+
+        HtmlNode::Element {
+            tag: String::from("li"),
+            attrs: None,
+            children: children,
+            display: Display::Block,
+        }
+    }
 }

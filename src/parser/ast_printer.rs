@@ -66,4 +66,20 @@ impl NodeVisitor<String> for AstPrinter {
     fn visit_markdown_code(&mut self, language: &str, content: &[InLineNode]) -> String {
         self.parenthesize(&format!("{language}code block"), content)
     }
+
+    fn visit_unordered_list(&mut self, content: &[InLineNode]) -> String {
+        self.parenthesize("unordered list", content)
+    }
+
+    fn visit_unordered_list_element(
+        &mut self,
+        content: &[InLineNode],
+        nested_list: &Option<Box<MarkdownNode>>,
+    ) -> String {
+        format!(
+            "\n(unordered list \n({})\n[{:#?}\n])",
+            self.print_in_line(content),
+            nested_list
+        )
+    }
 }

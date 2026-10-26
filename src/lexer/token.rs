@@ -4,10 +4,10 @@ use std::fmt;
 pub enum TokenType {
     // layout
     Hash,
-    Dash,
     NewLine,
     BreakLine,
     HorizontalRule,
+    UnorderedList,
     // inline
     Backtick,
     Delimiter {
