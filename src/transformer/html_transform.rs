@@ -47,6 +47,30 @@ impl HtmlTransformer {
                         "p" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "pre" | "code" => {
                             format!("{base_indent}<{tag}{attributes}>{inner}</{tag}>\n")
                         }
+                        "ul" => {
+                            format!(
+                                "\n{base_indent}<{tag}{attributes}>\n{inner}{base_indent}</{tag}>\n"
+                            )
+                        }
+                        "li" => {
+                            let has_block_children = children.iter().any(|c| {
+                                matches!(
+                                    c,
+                                    HtmlNode::Element {
+                                        display: Display::Block,
+                                        ..
+                                    }
+                                )
+                            });
+
+                            if !has_block_children {
+                                format!("{base_indent}<{tag}{attributes}>{inner}</{tag}>\n")
+                            } else {
+                                format!(
+                                    "{base_indent}<{tag}{attributes}>{inner}{base_indent}</{tag}>\n"
+                                )
+                            }
+                        }
                         _ => {
                             format!(
                                 "{base_indent}<{tag}{attributes}>\n{inner}{base_indent}</{tag}>\n"
