@@ -13,6 +13,7 @@ pub enum MarkdownNode {
         content: Vec<InLineNode>,
     },
     UnorderedList(Vec<InLineNode>),
+    OrderedList(Vec<InLineNode>),
 }
 
 impl Node for MarkdownNode {
@@ -25,6 +26,7 @@ impl Node for MarkdownNode {
                 visitor.visit_markdown_code(language, content)
             }
             MarkdownNode::UnorderedList(content) => visitor.visit_unordered_list(content),
+            MarkdownNode::OrderedList(content) => visitor.visit_ordered_list(content),
         }
     }
 }

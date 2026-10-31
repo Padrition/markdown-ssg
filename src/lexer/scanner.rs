@@ -97,11 +97,18 @@ impl Scanner {
                 self.scan_delimiter(c);
             }
             _ => {
-                if !self.is_content_closing(c) {
+                if self.is_ordered_list(c) {
+                    self.advance();
+                    self.add_token(TokenType::OrderedList);
+                } else if !self.is_content_closing(c) {
                     self.scan_text();
                 }
             }
         }
+    }
+
+    fn is_ordered_list(&self, c: char) -> bool {
+        c.is_ascii_digit() && self.source[self.current] == '.'
     }
 
     fn is_horizontal_rule(&self, marker: char) -> bool {

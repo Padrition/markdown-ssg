@@ -16,6 +16,10 @@ pub enum InLineNode {
         content: Vec<InLineNode>,
         nested_list: Option<Box<MarkdownNode>>,
     },
+    OrderedListElement {
+        content: Vec<InLineNode>,
+        nested_list: Option<Box<MarkdownNode>>,
+    },
 }
 
 impl Node for InLineNode {
@@ -32,6 +36,10 @@ impl Node for InLineNode {
                 content,
                 nested_list,
             } => visitor.visit_unordered_list_element(content, nested_list),
+            InLineNode::OrderedListElement {
+                content,
+                nested_list,
+            } => visitor.visit_ordered_list_element(content, nested_list),
         }
     }
 }

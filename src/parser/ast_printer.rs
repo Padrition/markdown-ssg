@@ -82,4 +82,20 @@ impl NodeVisitor<String> for AstPrinter {
             nested_list
         )
     }
+
+    fn visit_ordered_list_element(
+        &mut self,
+        content: &[InLineNode],
+        nested_list: &Option<Box<MarkdownNode>>,
+    ) -> String {
+        format!(
+            "\n(ordered list \n({})\n[{:#?}\n])",
+            self.print_in_line(content),
+            nested_list
+        )
+    }
+
+    fn visit_ordered_list(&mut self, content: &[InLineNode]) -> String {
+        self.parenthesize("ordered list", content)
+    }
 }

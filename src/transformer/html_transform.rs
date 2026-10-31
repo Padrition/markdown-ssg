@@ -47,7 +47,7 @@ impl HtmlTransformer {
                         "p" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "pre" | "code" => {
                             format!("{base_indent}<{tag}{attributes}>{inner}</{tag}>\n")
                         }
-                        "ul" => {
+                        "ul" | "ol" => {
                             format!(
                                 "\n{base_indent}<{tag}{attributes}>\n{inner}{base_indent}</{tag}>\n"
                             )

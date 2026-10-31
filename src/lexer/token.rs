@@ -8,6 +8,7 @@ pub enum TokenType {
     BreakLine,
     HorizontalRule,
     UnorderedList,
+    OrderedList,
     // inline
     Backtick,
     Delimiter {

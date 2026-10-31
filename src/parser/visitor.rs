@@ -15,6 +15,11 @@ pub trait NodeVisitor<T> {
         content: &[InLineNode],
         nested_list: &Option<Box<MarkdownNode>>,
     ) -> T;
+    fn visit_ordered_list_element(
+        &mut self,
+        content: &[InLineNode],
+        nested_list: &Option<Box<MarkdownNode>>,
+    ) -> T;
 
     //Markdown nodes
     fn visit_heading(&mut self, level: usize, content: &[InLineNode]) -> T;
@@ -22,4 +27,5 @@ pub trait NodeVisitor<T> {
     fn visit_horizontal_rule(&mut self) -> T;
     fn visit_markdown_code(&mut self, language: &str, content: &[InLineNode]) -> T;
     fn visit_unordered_list(&mut self, content: &[InLineNode]) -> T;
+    fn visit_ordered_list(&mut self, content: &[InLineNode]) -> T;
 }
